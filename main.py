@@ -22,6 +22,8 @@ from database.operations import (
 from bot.whatsapp_handler import (
     send_whatsapp_message, extract_message, verify_webhook_signature,
 )
+from bot.sms_handler import send_sms, sms_format
+from bot.telegram_handler import handle_telegram_webhook
 from bot.registration import (
     is_registering, start_registration, handle_registration_step
 )
@@ -96,6 +98,13 @@ COMMANDS = {
 def route_command(farmer, command: str) -> str:
     handler = COMMANDS.get(command, get_unknown_command)
     return handler(farmer)
+
+
+def send_message(phone: str, message: str) -> bool:
+    """Send a message via available channel: WhatsApp or SMS."""
+    if settings.whatsapp_token:
+        return send_whatsapp_message(phone, message)
+    return send_sms(phone, sms_format(message))
 
 
 # ── App lifespan (startup / shutdown) ──────────────────────────────────────────
@@ -234,8 +243,80 @@ async def receive_message(request: Request):
 async def telegram_webhook(request: Request):
     """Receive updates from Telegram via webhook."""
     body = await request.json()
-    from bot.telegram_handler import handle_telegram_webhook
     return await handle_telegram_webhook(body)
+
+
+# ── SMS webhook (Africa's Talking) ────────────────────────────────────────────
+@app.post("/sms_webhook")
+async def sms_webhook(request: Request):
+    """Receive incoming SMS from Africa's Talking."""
+    try:
+        form = await request.form()
+        phone = form.get("from", "").strip()
+        text  = form.get("text", "").strip()
+        # AT sometimes sends JSON too
+        if not phone:
+            body = await request.json()
+            phone = body.get("from", "")
+            text  = body.get("text", "")
+
+        if not phone:
+            return {"status": "no_phone"}
+
+        cmd = normalize_command(text)
+        db = get_db()
+
+        try:
+            if is_registering(phone) or cmd in ("REGISTER", "START"):
+                if not is_registering(phone):
+                    farmer = get_farmer_by_phone(db, phone)
+                    if farmer:
+                        send_sms(phone, sms_format(
+                            f"Welcome back, {farmer.location_raw}! "
+                            "Reply SOIL, WEATHER, or PEST."
+                        ))
+                        db.close()
+                        return {"status": "processed"}
+                    msg = start_registration(phone)
+                    send_sms(phone, sms_format(msg))
+                    db.close()
+                    return {"status": "registration_started"}
+
+                msg, farmer_data = handle_registration_step(phone, text)
+                if farmer_data:
+                    create_farmer(db, phone=farmer_data["phone"],
+                                  crop=farmer_data["crop"],
+                                  location_raw=farmer_data["location_raw"],
+                                  lat=farmer_data["lat"],
+                                  lon=farmer_data["lon"],
+                                  farm_size=farmer_data["farm_size"])
+                send_sms(phone, sms_format(msg))
+                db.close()
+                return {"status": "registration_step"}
+
+            farmer = get_farmer_by_phone(db, phone)
+            if not farmer:
+                msg = start_registration(phone)
+                send_sms(phone, sms_format(msg))
+                db.close()
+                return {"status": "registration_started"}
+
+            if cmd == "STOP":
+                update_farmer(db, phone, subscribed=0)
+            elif cmd == "START":
+                update_farmer(db, phone, subscribed=1)
+            elif cmd == "DAILY":
+                update_farmer(db, phone, daily_update=1)
+
+            reply = route_command(farmer, cmd)
+            send_sms(phone, sms_format(reply))
+            log_alert(db, farmer.id, "command", reply)
+            return {"status": "processed"}
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"SMS webhook error: {e}")
+        return {"status": "error"}
 
 
 # ── Test endpoint (browser-testable, no messaging account needed) ─────────────
