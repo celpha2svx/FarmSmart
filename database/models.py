@@ -67,8 +67,8 @@ class RegistrationState(Base):
     data  = Column(Text, nullable=True)                   # JSON-encoded dict
 
 
-def init_db(database_url: str):
+def init_db(database_url: str, **kwargs):
     """Create all tables if they don't exist."""
-    engine = create_engine(database_url)
+    engine = create_engine(database_url, **kwargs)
     Base.metadata.create_all(engine)
     return engine

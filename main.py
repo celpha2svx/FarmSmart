@@ -10,8 +10,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import PlainTextResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import text
 
 from database.models import init_db
 from database.operations import (
@@ -30,6 +32,9 @@ from bot.commands import (
 )
 from data_pipeline.scheduler import start_scheduler, stop_scheduler
 from utils.helpers import normalize_command
+from utils.config import settings
+from utils.rate_limiter import is_rate_limited
+from utils.admin_alerts import notify_admin
 
 load_dotenv()
 
@@ -49,24 +54,29 @@ class JSONFormatter(logging.Formatter):
 _handler = logging.StreamHandler()
 _handler.setFormatter(JSONFormatter())
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO"),
+    level=settings.log_level,
     handlers=[_handler],
     force=True,
 )
 logger = logging.getLogger("farmsmart")
 
-# ── Database setup ─────────────────────────────────────────────────────────────
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./farmsmart.db")
-engine       = init_db(DATABASE_URL)
+# ── Database setup (with connection pooling) ────────────────────────────────────
+_pool_config = {}
+if settings.database_url.startswith("postgresql"):
+    _pool_config = {
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+    }
+
+engine = init_db(settings.database_url, **_pool_config)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
 def get_db() -> Session:
     return SessionLocal()
 
-
-# ── WhatsApp config ────────────────────────────────────────────────────────────
-VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "farmsmart_verify")
 
 # ── Command router ─────────────────────────────────────────────────────────────
 COMMANDS = {
@@ -92,7 +102,11 @@ def route_command(farmer, command: str) -> str:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("FarmSmart starting up...")
-    start_scheduler(get_db, send_whatsapp_message)
+    try:
+        start_scheduler(get_db, send_whatsapp_message)
+    except Exception as e:
+        logger.error(f"Scheduler start failed: {e}")
+        notify_admin(f"Scheduler failed to start: {e}")
     yield
     logger.info("FarmSmart shutting down...")
     stop_scheduler()
@@ -105,6 +119,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── CORS middleware (allow WhatsApp Meta servers) ──────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 
 # ── Webhook verification (GET) — Meta handshake ────────────────────────────────
 @app.get("/webhook")
@@ -114,7 +136,7 @@ async def verify_webhook(request: Request):
     token     = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
 
-    if mode == "subscribe" and token == VERIFY_TOKEN:
+    if mode == "subscribe" and token == settings.verify_token:
         logger.info("WhatsApp webhook verified successfully")
         return PlainTextResponse(content=challenge)
 
@@ -141,7 +163,13 @@ async def receive_message(request: Request):
 
     phone   = payload["phone"]
     text    = normalize_command(payload["text"])
-    db      = get_db()
+
+    # Rate limiting
+    if is_rate_limited(phone):
+        logger.warning(f"Rate limited: {phone}")
+        return {"status": "rate_limited"}
+
+    db = get_db()
 
     try:
         # ── Handle active registration flow ───────────────────────────────
@@ -201,10 +229,24 @@ async def receive_message(request: Request):
         db.close()
 
 
-# ── Health check ───────────────────────────────────────────────────────────────
+# ── Health check (with DB connectivity) ────────────────────────────────────────
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "FarmSmart", "version": "1.0.0"}
+    db_ok = False
+    try:
+        db = get_db()
+        db.execute(text("SELECT 1"))
+        db.close()
+        db_ok = True
+    except Exception as e:
+        logger.error(f"Health check DB failure: {e}")
+
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "service": "FarmSmart",
+        "version": "1.0.0",
+        "database": "connected" if db_ok else "unreachable",
+    }
 
 
 # ── Local dev entry point ──────────────────────────────────────────────────────
