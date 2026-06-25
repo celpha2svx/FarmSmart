@@ -264,12 +264,17 @@ def build_application() -> Application:
 async def handle_telegram_webhook(request_body: dict) -> dict:
     """Process incoming Telegram update."""
     global _application
-    if _application is None:
-        _application = build_application()
+    try:
         if _application is None:
-            return {"status": "telegram_disabled"}
-        await _application.initialize()
+            _application = build_application()
+            if _application is None:
+                logger.warning("Telegram disabled — TELEGRAM_TOKEN not set")
+                return {"status": "telegram_disabled"}
+            await _application.initialize()
 
-    update = Update.de_json(request_body, _application.bot)
-    await _application.process_update(update)
-    return {"status": "ok"}
+        update = Update.de_json(request_body, _application.bot)
+        await _application.process_update(update)
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Telegram webhook error: {e}", exc_info=True)
+        return {"status": "error", "detail": str(e)}
