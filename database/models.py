@@ -4,7 +4,7 @@ Tables: farmers, alerts, degree_days
 """
 
 from sqlalchemy import (
-    Column, Text, Real, Integer, ForeignKey, create_engine
+    Column, Text, Integer, ForeignKey, create_engine, Float
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -19,8 +19,8 @@ class Farmer(Base):
     name         = Column(Text)
     crop         = Column(Text, nullable=False)
     location_raw = Column(Text, nullable=False)            # e.g. 'Sabon Gari, Kaduna'
-    lat          = Column(Real, nullable=False)
-    lon          = Column(Real, nullable=False)
+    lat          = Column(Float, nullable=False)
+    lon          = Column(Float, nullable=False)
     farm_size    = Column(Text)                            # 'small' | 'medium' | 'large'
     subscribed   = Column(Integer, default=1)              # 1=active, 0=STOP
     daily_update = Column(Integer, default=1)              # 1=receives 6AM daily
@@ -51,7 +51,7 @@ class DegreeDay(Base):
     farmer_id    = Column(Text, ForeignKey("farmers.id"), nullable=False)
     pest_id      = Column(Text, nullable=False)            # e.g. 'fall_armyworm'
     season_start = Column(Text, nullable=False)            # ISO date
-    accumulated  = Column(Real, default=0.0)
+    accumulated  = Column(Float, default=0.0)
     generations  = Column(Integer, default=0)
     last_updated = Column(Text, nullable=False)            # ISO timestamp
 
