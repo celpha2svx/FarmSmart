@@ -5,6 +5,7 @@ Handles WhatsApp webhook verification + message routing.
 
 import os
 import logging
+import json
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
@@ -16,7 +17,9 @@ from database.models import init_db
 from database.operations import (
     get_farmer_by_phone, create_farmer, update_farmer, log_alert
 )
-from bot.whatsapp_handler import send_whatsapp_message, extract_message
+from bot.whatsapp_handler import (
+    send_whatsapp_message, extract_message, verify_webhook_signature,
+)
 from bot.registration import (
     is_registering, start_registration, handle_registration_step
 )
@@ -29,9 +32,26 @@ from data_pipeline.scheduler import start_scheduler, stop_scheduler
 from utils.helpers import normalize_command
 
 load_dotenv()
+
+# ── Structured JSON logging ─────────────────────────────────────────────────────
+class JSONFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        log_entry = {
+            "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level":     record.levelname,
+            "logger":    record.name,
+            "message":   record.getMessage(),
+        }
+        if record.exc_info and record.exc_info[0]:
+            log_entry["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_entry)
+
+_handler = logging.StreamHandler()
+_handler.setFormatter(JSONFormatter())
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
-    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    handlers=[_handler],
+    force=True,
 )
 logger = logging.getLogger("farmsmart")
 
@@ -59,7 +79,7 @@ COMMANDS = {
     "DAILY":   subscribe_daily,
     "SCOUT":   get_scouting_guide_message,
     "SIGNS":   get_pest_signs,
-    "START":   lambda f: "✅ Alerts resumed! You'll receive updates again.",
+    "START":   lambda f: "Alerts resumed! You'll receive updates again.",
 }
 
 
@@ -71,10 +91,10 @@ def route_command(farmer, command: str) -> str:
 # ── App lifespan (startup / shutdown) ──────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🌱 FarmSmart starting up...")
+    logger.info("FarmSmart starting up...")
     start_scheduler(get_db, send_whatsapp_message)
     yield
-    logger.info("🌱 FarmSmart shutting down...")
+    logger.info("FarmSmart shutting down...")
     stop_scheduler()
 
 
@@ -105,6 +125,14 @@ async def verify_webhook(request: Request):
 # ── Incoming message handler (POST) ───────────────────────────────────────────
 @app.post("/webhook")
 async def receive_message(request: Request):
+    # Read raw body for signature verification
+    raw_body = await request.body()
+    sig_header = request.headers.get("X-Hub-Signature-256")
+
+    if not verify_webhook_signature(raw_body, sig_header):
+        logger.warning("Webhook rejected — invalid signature")
+        return Response(status_code=403)
+
     body    = await request.json()
     payload = extract_message(body)
 
@@ -123,7 +151,7 @@ async def receive_message(request: Request):
                     farmer = get_farmer_by_phone(db, phone)
                     if farmer:
                         reply = (
-                            f"👋 Welcome back, {farmer.location_raw}!\n\n"
+                            f"Welcome back, {farmer.location_raw}!\n\n"
                             "Reply SOIL, WEATHER, or PEST for your farm report.\n"
                             "Reply HELP for all commands."
                         )

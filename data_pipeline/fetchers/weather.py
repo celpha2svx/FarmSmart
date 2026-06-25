@@ -3,10 +3,10 @@ Open-Meteo weather data fetcher.
 Free API — no key required. 7-day hourly forecast, global coverage.
 """
 
-import httpx
 import logging
 from datetime import date, timedelta
 from utils.constants import OPEN_METEO_URL
+from utils.http_client import build_client
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +22,14 @@ def fetch_weather_forecast(
             'daily': [
                 {
                     'date': 'YYYY-MM-DD',
-                    'temperature_c': float,        # mean daily temp
+                    'temperature_c': float,
                     'temp_max': float,
                     'temp_min': float,
                     'humidity_percent': float,
                     'rainfall_mm': float,
                     'wind_speed_ms': float,
                     'solar_radiation_mj': float,
-                    'rain_probability': float,     # 0–100
+                    'rain_probability': float,
                 },
                 ...
             ],
@@ -57,7 +57,8 @@ def fetch_weather_forecast(
     }
 
     logger.info(f"Fetching Open-Meteo forecast for ({lat}, {lon})")
-    response = httpx.get(OPEN_METEO_URL, params=params, timeout=15)
+    client = build_client(timeout=15)
+    response = client.get(OPEN_METEO_URL, params=params)
     response.raise_for_status()
     raw = response.json()
 

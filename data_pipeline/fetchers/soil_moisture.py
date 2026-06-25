@@ -9,8 +9,8 @@ Set EARTHDATA_TOKEN in .env after registering at urs.earthdata.nasa.gov
 """
 
 import os
-import httpx
 import logging
+from utils.http_client import build_client
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,8 @@ def _fetch_open_meteo_soil(lat: float, lon: float) -> dict | None:
             "past_days": 1,
             "forecast_days": 1,
         }
-        resp = httpx.get(url, params=params, timeout=15)
+        client = build_client(timeout=15)
+        resp = client.get(url, params=params)
         resp.raise_for_status()
         data   = resp.json()
         values = data.get("hourly", {}).get("soil_moisture_0_to_1cm", [])
@@ -87,10 +88,8 @@ def _fetch_smap(lat: float, lon: float) -> dict | None:
         # NASA SMAP SPL3SMP (Enhanced) latest granule endpoint
         url    = "https://n5eil01u.ecs.nsidc.org/SMAP/SPL3SMP_E.006/"
         headers = {"Authorization": f"Bearer {EARTHDATA_TOKEN}"}
-        # This is a simplified call — real implementation would parse
-        # the NSIDC directory listing to get the latest granule URL
         logger.info("NASA SMAP fetch attempted (requires EarthData setup)")
-        return None  # Full implementation requires EarthData account
+        return None
     except Exception as e:
         logger.error(f"NASA SMAP fetch failed: {e}")
     return None

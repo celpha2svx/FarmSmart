@@ -9,9 +9,9 @@ Organised by geopolitical zone for maintainability.
 Covers 36 states + FCT with major farming LGAs.
 """
 
-import httpx
 import logging
 from typing import Optional, Tuple
+from utils.http_client import build_client
 
 logger = logging.getLogger(__name__)
 
@@ -309,7 +309,8 @@ def _geocode_api(location_str: str) -> Optional[Tuple[float, float]]:
     try:
         url = "https://geocoding-api.open-meteo.com/v1/search"
         params = {"name": location_str, "count": 1, "language": "en", "format": "json"}
-        response = httpx.get(url, params=params, timeout=10)
+        client = build_client(timeout=10)
+        response = client.get(url, params=params)
         response.raise_for_status()
         results = response.json().get("results", [])
         if results:

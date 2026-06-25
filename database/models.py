@@ -58,6 +58,15 @@ class DegreeDay(Base):
     farmer = relationship("Farmer", back_populates="degree_days")
 
 
+class RegistrationState(Base):
+    """Persistent multi-step registration state — survives restarts."""
+    __tablename__ = "registration_states"
+
+    phone = Column(Text, primary_key=True)
+    step  = Column(Integer, nullable=False, default=1)
+    data  = Column(Text, nullable=True)                   # JSON-encoded dict
+
+
 def init_db(database_url: str):
     """Create all tables if they don't exist."""
     engine = create_engine(database_url)

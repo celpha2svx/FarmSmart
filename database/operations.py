@@ -8,7 +8,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from database.models import Farmer, Alert, DegreeDay
+from database.models import Farmer, Alert, DegreeDay, RegistrationState
 from utils.helpers import generate_uuid, utcnow_iso
 
 logger = logging.getLogger(__name__)
@@ -148,3 +148,33 @@ def update_degree_day(
     db.commit()
     db.refresh(record)
     return record
+
+
+# ── RegistrationState ──────────────────────────────────────────────────────────
+
+def get_registration_state(db: Session, phone: str) -> Optional[RegistrationState]:
+    return db.query(RegistrationState).filter(RegistrationState.phone == phone).first()
+
+
+def save_registration_state(db: Session, phone: str, step: int, data: dict = None) -> RegistrationState:
+    import json
+    record = get_registration_state(db, phone)
+    if record:
+        record.step = step
+        record.data  = json.dumps(data) if data else None
+    else:
+        record = RegistrationState(
+            phone=phone,
+            step=step,
+            data=json.dumps(data) if data else None,
+        )
+        db.add(record)
+    db.commit()
+    return record
+
+
+def delete_registration_state(db: Session, phone: str) -> None:
+    record = get_registration_state(db, phone)
+    if record:
+        db.delete(record)
+        db.commit()
