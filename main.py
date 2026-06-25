@@ -137,6 +137,12 @@ app.add_middleware(
 )
 
 
+# ── Root route (Render health check visits this first) ─────────────────────────
+@app.get("/")
+async def root():
+    return {"service": "FarmSmart", "status": "running"}
+
+
 # ── Webhook verification (GET) — Meta handshake ────────────────────────────────
 @app.get("/webhook")
 async def verify_webhook(request: Request):
