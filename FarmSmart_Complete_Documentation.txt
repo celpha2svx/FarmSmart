@@ -1,0 +1,789 @@
+FarmSmart
+Precision Agriculture Advisory Platform
+for Smallholder Farmers in Nigeria
+
+Complete System Architecture, Data Pipeline & Implementation Plan
+WhatsApp/SMS Delivery · Satellite Data · Pest Intelligence
+
+June 2026
+
+1. The Core Problem
+Nigerian farmers lose 30–40% of yield to timing errors — watering too late, pest detection too late, planting at the wrong time. The data to prevent this already exists. The gap is translation: converting satellite and weather data into simple, actionable advice delivered through channels farmers already use.
+
+Pain Point
+Current Reality
+What FarmSmart Does
+When to irrigate?
+Farmers guess based on 'soil looks dry' or calendar
+Satellite soil moisture trends + ET forecast → 'Irrigate in 2 days' or 'Soil moisture dropping, prepare'
+What's the weather doing here?
+Generic national forecast, not local
+Downscaled micro-weather for their specific GPS location
+Will pests attack?
+Notice pests when damage is visible — already too late
+Degree-day models predict when conditions favour specific pests → early warning before damage occurs
+No internet/smartphone
+Many farmers use basic feature phones only
+WhatsApp bot (even on basic Android) + SMS fallback for feature phones
+Information overload
+Even if data exists, it is not actionable
+Simple messages: 'Irrigate your maize tomorrow morning' not 'Soil moisture at -15kPa'
+
+2. Solution Architecture
+The platform operates in three layers: data ingestion from free satellite and weather APIs, a processing engine that runs the agronomic models, and a delivery layer that converts results into plain-language WhatsApp and SMS messages.
+
+DATA SOURCES (Free / Open)
+NASA SMAP (Soil Moisture) · GFS Weather · Open-Meteo API · Ogimet Stations · Pest Degree-Day Database
+
+PROCESSING ENGINE (Python / FastAPI)
+Spatial downscaling · Penman-Monteith ET calculation · Pest degree-day models · Soil moisture trend projection · Translation layer (data → advice)
+
+DELIVERY LAYER
+WhatsApp Cloud API (Meta) — 1,000 free conversations/month
+SMS Gateway — Africa's Talking (~₦4–₦8/SMS, pay-per-use)
+Future: Mobile App
+
+Architecture Flow
+Every 6 hours: satellite soil moisture and weather forecast data is fetched for all registered farm locations. The processing engine runs ET calculations, degree-day pest accumulations, and soil moisture projections. Results pass through the translation engine. Alerts are queued and sent at 6 AM local time daily, or immediately for high-risk pest warnings.
+
+3. The Three Core Services
+Service 1 — Soil Moisture Forecast (Without Physical Sensors)
+How It Works
+Pull soil moisture from NASA SMAP (9km resolution, 3-day satellite revisit) or ESA CCI (combined satellite product)
+Pull 7-day weather forecast from Open-Meteo API (free, global, no API key needed)
+Calculate evapotranspiration (ET) using the Penman-Monteith equation driven by forecast temperature, humidity, wind speed, and solar radiation
+Soil moisture trend = current satellite estimate minus projected ET loss over next 3–5 days
+When trend crosses the crop-specific threshold → trigger alert to farmer
+
+Data → Message Translation
+Raw Satellite / Model Data
+What the Farmer Sees
+Soil moisture < 0.15 m³/m³ (maize)
+🔴 Soil moisture is CRITICALLY LOW
+ET projection > rainfall for 5 days
+No rain expected — irrigate now
+Soil moisture trending down -0.02/day
+📉 Dropping fast — soil drying quickly
+Soil moisture stable, rain in 2 days
+✅ No action needed. Rain coming.
+
+Service 2 — Local Micro-Weather
+How It Works
+Open-Meteo API: free, 7-day hourly forecast, global coverage, no API key required
+For Nigeria: NiMet station data or Ogimet for bias correction where available
+Elevation-based downscaling using SRTM data: adjust temperature by lapse rate (6.5°C per 1000m elevation gain)
+Convert raw meteorology into farmer-relevant actions: not 'humidity 65%' but 'Good day for spraying' or 'Rain likely tomorrow — delay fertilizer application'
+
+Sample WhatsApp Message
+🌱 *FarmSmart*
+
+⛅ *3-Day Weather* for your farm at Oyo East
+
+Today:      ☀️ Sunny, 32°C
+Tomorrow:   🌧 Rain likely (70%)
+Day 3:      ⛅ Partly cloudy, 30°C
+
+🚜 *Farming Advice:*
+• Delay fertilizer until Day 3
+• Good day to harvest today
+• Rain tomorrow — cover stored produce
+
+_Reply DAILY for daily updates_
+
+Service 3 — Pest & Disease Early Warning
+How It Works (Degree-Day Model)
+Each pest has a known thermal accumulation threshold. We accumulate heat units daily from the start of the growing season. When accumulated degree-days approach the pest emergence threshold, an alert is generated — typically 5–7 days before visible damage appears.
+
+Pest
+Model Type
+Base Temp (°C)
+DD Threshold
+Fall Armyworm
+Degree-Day
+12°C
+300–400 DD per generation
+Desert Locust
+Humidity + Degree-Day
+15°C
+60–80% humidity + recent rain
+Maize Stem Borer
+Degree-Day
+10°C
+250 DD per generation
+Tomato Late Blight
+Temperature + Leaf Wetness
+7°C
+>85% humidity × 48hr
+
+Degree-Day Formula
+Daily Degree-Days = (Tmax + Tmin) / 2  −  Tbase
+
+Rule: If DD_daily < 0, use 0 (cold days do not subtract)
+
+Accumulate daily.
+When accumulated DD >= pest threshold → trigger ALERT
+
+4. WhatsApp Bot — Full User Flow
+Registration (One-Time, Under 2 Minutes)
+Farmer sends 'Hi' or 'Register'. Bot responds with a guided 3-question setup:
+
+What crop do you grow? (numbered list: Maize, Cassava, Tomato, Rice, Yam, Other)
+Where is your farm? (reply with LGA or nearest town — e.g. 'Kaduna North')
+How big is your farm? (1. Less than 1 hectare / 2. 1–5 hectares / 3. More than 5 hectares)
+
+On completion, farmer receives confirmation with the full command list and their first update the following morning.
+
+Available Commands
+Command
+Response
+SOIL
+Current soil moisture status + 3-day trend + recommended action
+WEATHER
+3-day local weather forecast + farming advice (spray/harvest/irrigate)
+PEST
+Current pest risk level for the farmer's registered crop + scouting guide
+UPDATE
+Change crop type, farm location, or farm size
+DAILY
+Subscribe to automatic daily 6 AM update
+STOP
+Pause all alerts (can resume with START)
+HELP
+Show full command list
+SCOUT
+Step-by-step field scouting instructions for active pest alert
+SIGNS
+Visual signs to look for on the crop for the current pest risk
+
+Sample Bot Conversation — Soil Query
+Farmer: SOIL
+
+Bot:
+🌱 Soil Status for your Maize at Sabon Gari, Kaduna
+
+📊 Current: ADEQUATE (Moisture level: Good)
+📉 3-Day Trend: Stable →
+
+💧 Next irrigation needed: In 4–5 days
+
+⛅ Weather: Light rain possible on Day 2 may help
+
+✅ No action needed now
+
+Sample Bot Conversation — Pest Alert
+Bot (proactive alert, sent automatically at 6 AM):
+
+⚠️ PEST ALERT
+
+Your maize in Zaria is at HIGH RISK for Fall Armyworm
+in the next 5–7 days.
+
+📊 Why: Warm nights + recent rain created conditions
+
+🛡 What to do:
+• Scout your farm tomorrow morning
+• Look for: small holes in leaves, sawdust-like frass
+• Early spray: Neem oil or recommended insecticide
+• Contact your extension agent
+
+_Reply SCOUT for how to check your farm_
+
+5. Data Pipeline — Backend Architecture
+Layer 1 — Data Ingestion (Runs Every 6 Hours)
+Source
+Data Fetched
+Notes
+Open-Meteo API
+Temperature, humidity, rainfall, wind speed, solar radiation
+Free. No API key. 7-day hourly forecast. Global.
+NASA SMAP / ESA CCI
+Soil moisture 0–10cm depth, 9km grid resolution
+Free via NASA EarthData account
+SRTM Elevation
+Elevation data for lapse-rate temperature correction
+Static dataset, downloaded once
+Ogimet / NiMet
+Ground station data for bias correction
+Where available in Nigeria
+Pest DD Engine
+Internal model accumulating degree-days per season
+Runs on processed weather data
+
+Layer 2 — Processing Engine
+Step 1: Location Resolution
+'Sabon Gari, Kaduna' → latitude/longitude via a geocoding database pre-loaded with Nigerian LGAs and towns. This runs once at farmer registration and is stored in the database.
+Step 2: ET Calculation (Penman-Monteith)
+The reference evapotranspiration (ET₀) tells us how much water the atmosphere is demanding from the soil each day. This drives the soil moisture forecast.
+ET₀ (mm/day) = [0.408 × Δ × (Rn − G) + γ × (900 / (T + 273)) × u₂ × (es − ea)]
+               ─────────────────────────────────────────────────────────────────────
+               [Δ + γ × (1 + 0.34 × u₂)]
+
+Where:
+  Δ   = slope of saturation vapour pressure curve (kPa/°C)
+  Rn  = net radiation (MJ/m²/day)
+  G   = soil heat flux (≈ 0 for daily calculations)
+  γ   = psychrometric constant (kPa/°C)
+  T   = mean daily temperature (°C)
+  u₂  = wind speed at 2m height (m/s)
+  es  = saturation vapour pressure (kPa)
+  ea  = actual vapour pressure (kPa)
+Step 3: Soil Moisture Projection
+SM_day3 = SM_current − Σ(ET₀ − Rainfall) for days 1, 2, 3
+
+If SM_day3 < crop_threshold → trigger irrigation alert
+If SM_day3 still adequate → no alert, check again in 24h
+Step 4: Degree-Day Accumulation (Pest Model)
+DD_daily = max(0,  (Tmax + Tmin) / 2  −  Tbase)
+
+DD_accumulated = sum of all DD_daily since season start
+
+Progress (%) = (DD_accumulated / DD_threshold) × 100
+
+Thresholds:
+  > 80% → HIGH RISK — alert farmer immediately
+  > 60% → MEDIUM   — advisory warning
+  > 40% → LOW      — monitor conditions
+Step 5: Translation Engine (Data → Plain Language)
+Every numeric output is converted to an action-oriented message in plain English. The rule set is crop-specific. No raw numbers are sent to the farmer — only status labels and clear actions.
+
+Crop-Specific Soil Moisture Thresholds
+Crop
+Critical (m³/m³)
+Low (m³/m³)
+Message Triggered
+Maize
+< 0.15
+< 0.20
+Irrigate IMMEDIATELY / Irrigate within 24 hours
+Cassava
+< 0.10
+< 0.15
+Irrigate IMMEDIATELY / Irrigate within 24 hours
+Tomato
+< 0.18
+< 0.23
+Irrigate IMMEDIATELY / Irrigate within 24 hours
+Rice
+< 0.30
+< 0.35
+Irrigate IMMEDIATELY / Irrigate within 24 hours
+Yam
+< 0.12
+< 0.18
+Irrigate IMMEDIATELY / Irrigate within 24 hours
+
+6. Penman-Monteith — Full Python Implementation
+This is the agronomic core of FarmSmart. Every soil moisture forecast depends on this calculation being accurate. The function takes inputs directly from the Open-Meteo API response.
+
+import math
+
+def calculate_eto(
+    temperature_c: float,       # Mean daily temp (°C) from Open-Meteo
+    humidity_percent: float,     # Relative humidity (%)
+    wind_speed_ms: float,        # Wind speed at 2m height (m/s)
+    solar_radiation_mj: float,   # Solar radiation (MJ/m²/day)
+    elevation_m: float,          # Farm elevation (from SRTM)
+    latitude_deg: float,         # Farm latitude
+    day_of_year: int             # Julian day (1–365)
+) -> float:
+    """
+    Returns ET₀ in mm/day — atmospheric water demand
+    """
+    # 1. Atmospheric pressure (kPa)
+    P = 101.3 * ((293 - 0.0065 * elevation_m) / 293) ** 5.26
+
+    # 2. Psychrometric constant (kPa/°C)
+    gamma = 0.000665 * P
+
+    # 3. Saturation vapour pressure (kPa)
+    es = 0.6108 * math.exp((17.27 * temperature_c) / (temperature_c + 237.3))
+
+    # 4. Actual vapour pressure (kPa)
+    ea = es * (humidity_percent / 100)
+
+    # 5. Vapour pressure deficit
+    vpd = es - ea
+
+    # 6. Slope of saturation vapour pressure curve (kPa/°C)
+    delta = (4098 * es) / ((temperature_c + 237.3) ** 2)
+
+    # 7. Net radiation
+    Ra = _extraterrestrial_radiation(latitude_deg, day_of_year)
+    Rns = 0.77 * solar_radiation_mj
+    Rnl = 4.903e-9 * ((temperature_c + 273.16) ** 4) * (0.34 - 0.14 * math.sqrt(ea))
+    Rn = Rns - Rnl
+
+    # 8. Soil heat flux (negligible for daily calc)
+    G = 0
+
+    # 9. Penman-Monteith equation
+    numerator = (0.408 * delta * (Rn - G)) + \
+                (gamma * (900 / (temperature_c + 273)) * wind_speed_ms * vpd)
+    denominator = delta + (gamma * (1 + 0.34 * wind_speed_ms))
+
+    return max(0, numerator / denominator)   # mm/day
+
+def _extraterrestrial_radiation(lat_deg: float, doy: int) -> float:
+    lat_rad = math.radians(lat_deg)
+    delta   = 0.409 * math.sin((2 * math.pi / 365) * doy - 1.39)
+    omega_s = math.acos(-math.tan(lat_rad) * math.tan(delta))
+    d_r     = 1 + 0.033 * math.cos((2 * math.pi / 365) * doy)
+    G_sc    = 0.0820
+    Ra = (24 * 60 / math.pi) * G_sc * d_r * (
+         omega_s * math.sin(lat_rad) * math.sin(delta) +
+         math.cos(lat_rad) * math.cos(delta) * math.sin(omega_s))
+    return Ra
+
+Practical interpretation:
+If ET₀ = 5 mm/day and rainfall = 0, the soil loses 5mm of water that day.
+Over 3 days with no rain = 15mm cumulative loss.
+If soil moisture drops below the crop's critical threshold → irrigation alert fires.
+
+7. Pest Degree-Day Model — Full Python Implementation
+
+class PestModel:
+    def __init__(self, name: str, base_temp_c: float, dd_threshold: float):
+        self.name          = name
+        self.base_temp     = base_temp_c
+        self.dd_threshold  = dd_threshold
+        self.accumulated   = 0.0
+        self.generations   = 0
+
+    def add_daily_reading(self, tmax: float, tmin: float) -> dict:
+        tmean    = (tmax + tmin) / 2
+        daily_dd = max(0.0, tmean - self.base_temp)
+        self.accumulated += daily_dd
+
+        # Count completed generations
+        while self.accumulated >= self.dd_threshold:
+            self.accumulated -= self.dd_threshold
+            self.generations += 1
+
+        progress = (self.accumulated / self.dd_threshold) * 100
+
+        if progress > 80:
+            risk = 'HIGH'
+        elif progress > 60:
+            risk = 'MEDIUM'
+        elif progress > 40:
+            risk = 'LOW'
+        else:
+            risk = 'MINIMAL'
+
+        return {
+            'pest':                self.name,
+            'daily_dd':            round(daily_dd, 1),
+            'accumulated_dd':      round(self.accumulated, 1),
+            'threshold':           self.dd_threshold,
+            'progress_percent':    round(progress, 1),
+            'generations':         self.generations,
+            'risk_level':          risk,
+        }
+
+# Registered pest models (Nigerian crops)
+PEST_MODELS = {
+    'fall_armyworm': PestModel('Fall Armyworm',     base_temp_c=12.0, dd_threshold=350),
+    'desert_locust': PestModel('Desert Locust',     base_temp_c=15.0, dd_threshold=400),
+    'stem_borer':    PestModel('Maize Stem Borer',  base_temp_c=10.0, dd_threshold=250),
+    'tomato_blight': PestModel('Tomato Late Blight',base_temp_c= 7.0, dd_threshold=150),
+}
+
+def check_humidity_pest_risk(humidity_percent: float, leaf_wetness_hours: int) -> str:
+    """Humidity-triggered disease risk (Late Blight, Rust)"""
+    if humidity_percent > 85 and leaf_wetness_hours > 48:
+        return 'HIGH'
+    elif humidity_percent > 70 and leaf_wetness_hours > 24:
+        return 'MEDIUM'
+    return 'LOW'
+
+8. WhatsApp Bot — FastAPI Implementation
+The webhook server receives messages from Meta's WhatsApp Cloud API and routes them to the correct handler. The server also handles the Meta webhook verification handshake at startup.
+
+from fastapi import FastAPI, Request
+import requests, json, os
+
+app = FastAPI()
+
+WHATSAPP_TOKEN  = os.environ['WHATSAPP_TOKEN']
+PHONE_NUMBER_ID = os.environ['PHONE_NUMBER_ID']
+VERIFY_TOKEN    = os.environ['VERIFY_TOKEN']
+
+@app.get('/webhook')
+async def verify_webhook(request: Request):
+    """Meta verifies this endpoint at WhatsApp Cloud API setup"""
+    mode      = request.query_params.get('hub.mode')
+    token     = request.query_params.get('hub.verify_token')
+    challenge = request.query_params.get('hub.challenge')
+    if mode == 'subscribe' and token == VERIFY_TOKEN:
+        return int(challenge)
+    return {'error': 'Verification failed'}, 403
+
+@app.post('/webhook')
+async def receive_message(request: Request):
+    body     = await request.json()
+    entry    = body.get('entry', [{}])[0]
+    changes  = entry.get('changes', [{}])[0]
+    value    = changes.get('value', {})
+    messages = value.get('messages', [])
+
+    if not messages:
+        return {'status': 'no_message'}
+
+    message = messages[0]
+    phone   = message['from']
+    text    = message.get('text', {}).get('body', '').strip().upper()
+
+    farmer   = get_farmer(phone)
+    response = route_command(phone, farmer, text)
+
+    if response:
+        send_whatsapp_message(phone, response)
+
+    return {'status': 'processed'}
+
+COMMANDS = {
+    'SOIL':    get_soil_moisture_message,
+    'WEATHER': get_weather_message,
+    'PEST':    get_pest_message,
+    'UPDATE':  handle_update,
+    'STOP':    handle_stop,
+    'HELP':    get_help_message,
+    'DAILY':   subscribe_daily,
+    'SCOUT':   get_scouting_guide,
+    'SIGNS':   get_pest_signs,
+}
+
+def route_command(phone: str, farmer, command: str) -> str:
+    if not farmer:
+        return handle_registration(phone, command)
+    handler = COMMANDS.get(command, get_unknown_command)
+    return handler(farmer)
+
+def send_whatsapp_message(to: str, body: str):
+    url  = f'https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages'
+    data = {
+        'messaging_product': 'whatsapp',
+        'to':   to,
+        'type': 'text',
+        'text': {'body': body},
+    }
+    requests.post(url, headers={'Authorization': f'Bearer {WHATSAPP_TOKEN}'}, json=data)
+
+9. Translation Engine — Data to Plain Language
+This is the most important layer of the system. Raw numbers and probabilities confuse farmers. Every data point is converted to a status label and a single clear action. No farmer should ever receive a number they cannot act on.
+
+def translate_soil_moisture(
+    sm_value: float,    # Current soil moisture (m³/m³) from NASA SMAP
+    sm_trend: float,    # Projected 3-day change
+    crop: str           # Registered crop
+) -> str:
+
+    THRESHOLDS = {
+        'maize':   {'critical': 0.15, 'low': 0.20},
+        'cassava': {'critical': 0.10, 'low': 0.15},
+        'tomato':  {'critical': 0.18, 'low': 0.23},
+        'rice':    {'critical': 0.30, 'low': 0.35},
+        'yam':     {'critical': 0.12, 'low': 0.18},
+    }
+    t = THRESHOLDS.get(crop, THRESHOLDS['maize'])
+
+    if sm_value < t['critical']:
+        status = '🔴 CRITICALLY LOW'
+        action = 'Irrigate IMMEDIATELY'
+    elif sm_value < t['low']:
+        status = '🟡 LOW'
+        action = 'Irrigate within 24 hours'
+    else:
+        status = '🟢 ADEQUATE'
+        action = 'No irrigation needed now'
+
+    if sm_trend < -0.02:
+        trend = '📉 Dropping fast — soil drying quickly'
+    elif sm_trend < -0.01:
+        trend = '📉 Dropping slowly'
+    elif sm_trend < 0:
+        trend = '→ Stable'
+    else:
+        trend = '📈 Improving (recent rain helped)'
+
+    return f'''
+🌱 *Soil Moisture Status*
+Crop: {crop.title()}
+
+Status: {status}
+{trend}
+
+💧 *Recommended Action:*
+{action}
+
+_Check again tomorrow or reply SOIL_
+'''.strip()
+
+def translate_pest_risk(dd_data: dict, humidity_risk: str) -> str | None:
+    is_high = dd_data['risk_level'] == 'HIGH' or humidity_risk == 'HIGH'
+    is_med  = dd_data['risk_level'] == 'MEDIUM' or humidity_risk == 'MEDIUM'
+
+    if is_high:
+        return f'''
+⚠️ *PEST ALERT — {dd_data['pest']}*
+Risk Level: 🔴 HIGH
+
+Your crop is in the danger window.
+
+🛡 What to do:
+1. Scout your farm tomorrow morning
+2. Look for early signs of damage
+3. Consider preventive spray
+4. Contact your extension agent
+
+Early action prevents 70% of crop loss!
+_Reply SIGNS to learn what to look for_
+'''.strip()
+
+    if is_med:
+        return f'''
+⚠️ *Pest Advisory — {dd_data['pest']}*
+Risk Level: 🟡 MODERATE
+
+Conditions building. No emergency yet.
+• Monitor your farm twice this week
+• Check undersides of leaves
+• Prepare your spray
+_No immediate action required_
+'''.strip()
+
+    return None   # No alert needed
+
+10. Complete File Structure
+farmsmart/
+├── main.py                      # FastAPI app entry, WhatsApp webhook
+├── requirements.txt             # Python dependencies
+├── .env                         # API keys and tokens (never commit)
+├── .github/
+│   └── workflows/
+│       └── deploy.yml           # Auto-deploy to Railway/Render on push
+│
+├── data_pipeline/
+│   ├── fetchers/
+│   │   ├── soil_moisture.py     # NASA SMAP / ESA CCI fetcher
+│   │   ├── weather.py           # Open-Meteo API fetcher
+│   │   └── elevation.py         # SRTM elevation data loader
+│   │
+│   ├── models/
+│   │   ├── penman_monteith.py   # ET₀ calculation (full implementation)
+│   │   ├── soil_trend.py        # Soil moisture 3-day projection
+│   │   └── pest_models.py       # Degree-day + humidity models
+│   │
+│   └── scheduler.py             # Cron jobs (every 6hrs soil, daily alerts)
+│
+├── translation/
+│   ├── soil_to_message.py       # Soil data → farmer message
+│   ├── weather_to_message.py    # Weather data → farmer message
+│   └── pest_to_message.py       # Pest risk → alert message
+│
+├── bot/
+│   ├── whatsapp_handler.py      # Meta WhatsApp Cloud API integration
+│   ├── sms_handler.py           # Africa's Talking SMS gateway
+│   ├── registration.py          # Farmer onboarding 3-step flow
+│   └── commands.py              # All command handlers (SOIL, WEATHER, etc.)
+│
+├── database/
+│   ├── models.py                # Farmer, Farm, Alert, DegreeDay models
+│   ├── operations.py            # CRUD operations
+│   └── migrations/              # Schema version migrations
+│
+├── tests/
+│   ├── test_penman_monteith.py  # ET₀ formula accuracy tests
+│   ├── test_pest_models.py      # Degree-day accumulation tests
+│   ├── test_translation.py      # Data → message translation tests
+│   └── test_bot_commands.py     # Command routing tests
+│
+└── utils/
+    ├── geocoding.py             # 'Sabon Gari, Kaduna' → lat/lon
+    ├── constants.py             # Crop thresholds, pest thresholds
+    └── helpers.py               # Shared utility functions
+
+Database Schema
+-- Farmer registration
+CREATE TABLE farmers (
+    id           TEXT PRIMARY KEY,   -- UUID
+    phone        TEXT UNIQUE NOT NULL,
+    name         TEXT,
+    crop         TEXT NOT NULL,
+    location_raw TEXT NOT NULL,       -- 'Sabon Gari, Kaduna'
+    lat          REAL NOT NULL,
+    lon          REAL NOT NULL,
+    farm_size    TEXT,                -- 'small' | 'medium' | 'large'
+    subscribed   INTEGER DEFAULT 1,  -- 1 = active, 0 = STOP
+    daily_update INTEGER DEFAULT 1,  -- 1 = receives 6AM daily
+    registered   TEXT NOT NULL
+);
+
+-- Alert history
+CREATE TABLE alerts (
+    id           TEXT PRIMARY KEY,
+    farmer_id    TEXT NOT NULL,
+    alert_type   TEXT NOT NULL,      -- 'soil' | 'weather' | 'pest'
+    risk_level   TEXT,               -- 'HIGH' | 'MEDIUM' | 'LOW'
+    message_sent TEXT NOT NULL,
+    sent_at      TEXT NOT NULL,
+    delivery     TEXT DEFAULT 'whatsapp',
+    FOREIGN KEY (farmer_id) REFERENCES farmers(id)
+);
+
+-- Degree-day accumulation per farmer per pest
+CREATE TABLE degree_days (
+    id           TEXT PRIMARY KEY,
+    farmer_id    TEXT NOT NULL,
+    pest_id      TEXT NOT NULL,
+    season_start TEXT NOT NULL,
+    accumulated  REAL DEFAULT 0,
+    generations  INTEGER DEFAULT 0,
+    last_updated TEXT NOT NULL,
+    FOREIGN KEY (farmer_id) REFERENCES farmers(id)
+);
+
+11. Deployment & Cost
+FarmSmart is designed to run at zero operating cost in its initial phase, using only free tiers of cloud services and open-access satellite data.
+
+Component
+Service
+Free Tier Limit
+Cost
+Backend (FastAPI)
+Railway or Render
+500hr/month compute
+₦0
+Database
+Railway Postgres / Supabase
+500MB storage
+₦0
+WhatsApp Delivery
+Meta WhatsApp Cloud API
+1,000 conversations/month
+₦0
+SMS (optional fallback)
+Africa's Talking
+Pay per use
+~₦4–₦8/SMS
+Weather Data
+Open-Meteo API
+Unlimited
+₦0
+Soil Moisture Data
+NASA EarthData / SMAP
+Unlimited (free account)
+₦0
+Cron Scheduler
+GitHub Actions
+2,000 min/month
+₦0
+Domain (optional)
+Any registrar
+—
+~$10/year
+TOTAL MONTHLY COST (WhatsApp only)
+
+₦0
+
+CI/CD Pipeline (.github/workflows/deploy.yml)
+name: FarmSmart Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: pytest tests/ -v
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Railway
+        run: railway up --service farmsmart
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+12. Immediate Next Steps
+
+Step 1 — Verify Open-Meteo Access (Today)
+No API key needed. Test this URL directly in your browser or curl:
+https://api.open-meteo.com/v1/forecast
+  ?latitude=10.5
+  &longitude=7.4
+  &daily=temperature_2m_max,temperature_2m_min,
+         precipitation_sum,relative_humidity_2m_max
+  &timezone=Africa/Lagos
+Expected: JSON with 7 days of temperature and rainfall for Kaduna. If you get valid JSON, the data layer is confirmed.
+
+Step 2 — Set Up Meta WhatsApp Cloud API
+Create a Meta Developer account at developers.facebook.com
+Create a new Business App (type: Business)
+Add the WhatsApp product to your app
+Get your test phone number ID and temporary access token
+Set your webhook URL to your Railway/Render deployment + /webhook
+Set VERIFY_TOKEN to a string you choose and store in .env
+
+Step 3 — Build and Test Penman-Monteith
+Build penman_monteith.py. Feed it real Kaduna weather data from Open-Meteo for last month. Verify ET₀ outputs are in the 3–7 mm/day range typical for Northern Nigeria dry season. This validates the model before connecting to live data.
+
+Step 4 — Build Fall Armyworm Degree-Day Model
+Fall Armyworm is the highest-priority pest for Nigerian maize farmers. Build and test the degree-day accumulation for FAW first (base temp 12°C, threshold 350 DD). Run it against historical Kaduna temperature data and verify it would have triggered alerts in known outbreak years (2016 was the FAW introduction year in Nigeria).
+
+Step 5 — Build Registration Flow
+Three questions, under 2 minutes, WhatsApp-native (numbered choices, no forms). Test end-to-end on a real WhatsApp number before adding any agronomic logic.
+
+Step 6 — End-to-End Integration Test
+Weather data from Open-Meteo → ET₀ calculation → soil moisture trend → translation → WhatsApp message delivered to your own phone. When this works for one farm location, it works for any.
+
+Build Order Summary
+1. Verify Open-Meteo API response for a Nigerian coordinate
+2. Build penman_monteith.py + test with real data
+3. Build pest_models.py (start with Fall Armyworm)
+4. Build translation layer (soil_to_message.py)
+5. Set up Meta WhatsApp Cloud API + webhook
+6. Build registration flow (3 questions)
+7. Wire everything end-to-end: data → calculation → message
+8. Deploy to Railway, test on real phone
+9. Add SMS fallback via Africa's Talking
+10. Onboard first pilot farmers in Ogun State
+
+13. Name Decision
+Based on simplicity, bilingual usability in English and Nigerian Pidgin, and clear product communication:
+
+Name
+Meaning
+Notes
+FarmSmart ★
+Farm + Smart (data-driven decisions)
+Recommended. Works in English and Pidgin. 'Farm smart, no be guesswork.' Clear, memorable, professional.
+GrowWise NG
+Grow + Wise (knowledge-led farming)
+Friendly. Nigerian identity built in via NG suffix.
+SoilPulse
+Pulse of the soil
+Technical but warm. Strong for investor communication.
+FarmAlert
+Direct — action and urgency
+Very clear but may feel alarm-heavy.
+CropWatch
+Watching your crops
+Protective, reliable feel.
+GreenSense
+Green + Sense (data sensing)
+Modern. Could work for future app branding.
+AcreWise
+Per-acre wisdom
+Specific to land area — resonates with smallholders.
+
+FarmSmart — Precision Agriculture for Nigeria  |  Confidential Build Document  |  June 2026
