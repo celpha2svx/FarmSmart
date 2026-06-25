@@ -229,6 +229,72 @@ async def receive_message(request: Request):
         db.close()
 
 
+# ── Telegram bot webhook ───────────────────────────────────────────────────────
+@app.post("/telegram_webhook")
+async def telegram_webhook(request: Request):
+    """Receive updates from Telegram via webhook."""
+    body = await request.json()
+    from bot.telegram_handler import handle_telegram_webhook
+    return await handle_telegram_webhook(body)
+
+
+# ── Test endpoint (browser-testable, no messaging account needed) ─────────────
+@app.get("/test/{command}")
+async def test_command(
+    command: str,
+    phone: str  = "2348012345678",
+    crop: str   = "maize",
+    location: str = "Zaria",
+    lat: float  = 11.0780,
+    lon: float  = 7.7020,
+):
+    """Test any command in your browser without a messaging account.
+
+    Examples:
+      GET /test/soil?crop=maize&lat=11.1&lon=7.7
+      GET /test/weather?crop=tomato&lat=6.4&lon=7.5
+      GET /test/pest?crop=cowpea&lat=10.3&lon=9.8
+      GET /test/help
+      GET /test/scout?crop=pepper
+      GET /test/signs?crop=maize
+    """
+    from unittest.mock import MagicMock
+    from bot.commands import (
+        get_soil_moisture_message, get_weather_message, get_pest_message,
+        get_help_message, get_unknown_command, get_pest_signs,
+        get_scouting_guide_message,
+    )
+
+    farmer = MagicMock()
+    farmer.phone = phone
+    farmer.crop = crop.lower()
+    farmer.location_raw = location
+    farmer.lat = lat
+    farmer.lon = lon
+    farmer.farm_size = "medium"
+    farmer.subscribed = 1
+    farmer.daily_update = 1
+
+    handlers = {
+        "soil":    get_soil_moisture_message,
+        "weather": get_weather_message,
+        "pest":    get_pest_message,
+        "help":    get_help_message,
+        "scout":   get_scouting_guide_message,
+        "signs":   get_pest_signs,
+    }
+
+    handler = handlers.get(command.lower(), get_unknown_command)
+    try:
+        msg = handler(farmer)
+        return PlainTextResponse(content=msg)
+    except Exception as e:
+        return PlainTextResponse(
+            content=f"Error: {type(e).__name__}: {e}",
+            status_code=500,
+        )
+
+
 # ── Health check (with DB connectivity) ────────────────────────────────────────
 @app.get("/health")
 async def health_check():

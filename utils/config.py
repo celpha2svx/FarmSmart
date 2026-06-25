@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     log_level: str = "INFO"
 
+    # Telegram bot (optional — alternative to WhatsApp)
+    telegram_token: str = ""
+
     # Slack alerts (optional)
     slack_webhook_url: str = ""
 
