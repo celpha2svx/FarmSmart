@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:farmsmart_app/core/constants/app_constants.dart';
+import 'package:farmsmart_app/core/constants/api_constants.dart';
 
 final _secureStorage = const FlutterSecureStorage();
 
@@ -26,22 +26,4 @@ class LocaleNotifier extends StateNotifier<String> {
   }
 }
 
-final onboardingCompleteProvider = StateNotifierProvider<OnboardingNotifier, bool>((ref) {
-  return OnboardingNotifier();
-});
 
-class OnboardingNotifier extends StateNotifier<bool> {
-  OnboardingNotifier() : super(false) {
-    _load();
-  }
-
-  Future<void> _load() async {
-    final val = await _secureStorage.read(key: StorageConstants.onboardingCompleteKey);
-    state = val == 'true';
-  }
-
-  Future<void> complete() async {
-    state = true;
-    await _secureStorage.write(key: StorageConstants.onboardingCompleteKey, 'true');
-  }
-}

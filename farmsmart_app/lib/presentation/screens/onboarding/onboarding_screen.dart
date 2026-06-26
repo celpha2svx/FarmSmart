@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:farmsmart_app/core/constants/app_constants.dart';
 import 'package:farmsmart_app/core/localization/app_localizations.dart';
 import 'package:farmsmart_app/core/theme/colors.dart';
+import 'package:farmsmart_app/presentation/providers/core_providers.dart';
 import 'package:farmsmart_app/app.dart';
 
 /// 3-step farm setup: Crop → Location → Farm Size

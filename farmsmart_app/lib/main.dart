@@ -7,6 +7,15 @@ import 'package:farmsmart_app/presentation/providers/locale_provider.dart';
 import 'package:farmsmart_app/presentation/providers/connectivity_provider.dart';
 import 'package:farmsmart_app/presentation/screens/splash/splash_screen.dart';
 
+Locale _localeFromString(String code) {
+  switch (code) {
+    case 'ha': return const Locale('ha');
+    case 'yo': return const Locale('yo');
+    case 'ig': return const Locale('ig');
+    default: return const Locale('en');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
@@ -30,7 +39,7 @@ class FarmSmartApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.light,
-      locale: locale,
+      locale: _localeFromString(locale),
       supportedLocales: const [
         Locale('en'),
         Locale('ha'),

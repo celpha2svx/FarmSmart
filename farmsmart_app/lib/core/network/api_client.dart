@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:farmsmart_app/core/constants/api_constants.dart';
+import 'package:farmsmart_app/core/constants/app_constants.dart';
 
 /// Pre-configured Dio HTTP client for FarmSmart backend.
 class FarmSmartApiClient {
@@ -9,8 +10,8 @@ class FarmSmartApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.farmsmartBaseUrl,
-        connectTimeout: ApiConstants.apiTimeout,
-        receiveTimeout: ApiConstants.apiTimeout,
+        connectTimeout: AppConstants.apiTimeout,
+        receiveTimeout: AppConstants.apiTimeout,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -43,8 +44,8 @@ class FaoApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.faoWaporBaseUrl,
-        connectTimeout: ApiConstants.faoApiTimeout,
-        receiveTimeout: ApiConstants.faoApiTimeout,
+        connectTimeout: AppConstants.faoApiTimeout,
+        receiveTimeout: AppConstants.faoApiTimeout,
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:convert';
+import 'package:drift/drift.dart';
 import 'package:farmsmart_app/core/database/database.dart';
-import 'package:farmsmart_app/domain/entities/farm.dart';
+import 'package:farmsmart_app/domain/entities/farm.dart' as domain;
 import 'package:uuid/uuid.dart';
 
 /// Local SQLite operations using Drift.
@@ -12,7 +13,7 @@ class LocalDatasource {
   LocalDatasource(this._db);
 
   // ── Farm ──
-  Future<void> saveFarm(Farm farm) async {
+  Future<void> saveFarm(domain.Farm farm) async {
     await _db.into(_db.farms).insertOnConflictUpdate(
       FarmsCompanion.insert(
         id: farm.id,
@@ -29,13 +30,13 @@ class LocalDatasource {
     );
   }
 
-  Future<Farm?> getFarm(String phone) async {
+  Future<domain.Farm?> getFarm(String phone) async {
     final rows = await _db.select(_db.farms)
       .where((f) => f.phone.equals(phone))
       .get();
     if (rows.isEmpty) return null;
     final r = rows.first;
-    return Farm(
+    return domain.Farm(
       id: r.id,
       phone: r.phone,
       crop: r.crop,
@@ -50,7 +51,7 @@ class LocalDatasource {
   }
 
   // ── Advisories ──
-  Future<void> saveAdvisories(List<Advisory> advisories) async {
+  Future<void> saveAdvisories(List<domain.Advisory> advisories) async {
     for (final a in advisories) {
       await _db.into(_db.advisories).insertOnConflictUpdate(
         AdvisoriesCompanion.insert(
@@ -61,19 +62,19 @@ class LocalDatasource {
           message: a.message,
           riskLevel: Value(a.riskLevel),
           date: a.date,
-          read: a.read ? 1 : 0,
+          read: Value(a.read ? 1 : 0),
         ),
       );
     }
   }
 
-  Future<List<Advisory>> getAdvisories(String farmId, {int limit = 10}) async {
+  Future<List<domain.Advisory>> getAdvisories(String farmId, {int limit = 10}) async {
     final rows = await _db.select(_db.advisories)
       .where((a) => a.farmId.equals(farmId))
       .orderBy([(a) => OrderingTerm.asc(a.date)])
       .limit(limit)
       .get();
-    return rows.map((r) => Advisory(
+    return rows.map((r) => domain.Advisory(
       id: r.id,
       farmId: r.farmId,
       advisoryType: r.advisoryType,
@@ -86,7 +87,7 @@ class LocalDatasource {
   }
 
   // ── Weather ──
-  Future<void> saveWeather(String farmId, List<WeatherForecast> forecasts) async {
+  Future<void> saveWeather(String farmId, List<domain.WeatherForecast> forecasts) async {
     for (final f in forecasts) {
       await _db.into(_db.weatherData).insertOnConflictUpdate(
         WeatherDataCompanion.insert(
@@ -103,12 +104,12 @@ class LocalDatasource {
     }
   }
 
-  Future<List<WeatherForecast>> getWeather(String farmId) async {
+  Future<List<domain.WeatherForecast>> getWeather(String farmId) async {
     final rows = await _db.select(_db.weatherData)
       .where((w) => w.farmId.equals(farmId))
       .orderBy([(w) => OrderingTerm.asc(w.date)])
       .get();
-    return rows.map((r) => WeatherForecast(
+    return rows.map((r) => domain.WeatherForecast(
       date: r.date,
       tempMax: r.tempMax,
       tempMin: r.tempMin,
@@ -120,7 +121,7 @@ class LocalDatasource {
   }
 
   // ── Farming Calendar Tasks ──
-  Future<void> saveTasks(List<FarmingTask> tasks) async {
+  Future<void> saveTasks(List<domain.FarmingTask> tasks) async {
     for (final t in tasks) {
       await _db.into(_db.farmingCalendar).insertOnConflictUpdate(
         FarmingCalendarCompanion.insert(
@@ -130,18 +131,18 @@ class LocalDatasource {
           taskType: t.taskType,
           title: t.title,
           description: t.description,
-          done: t.done ? 1 : 0,
+          done: Value(t.done ? 1 : 0),
         ),
       );
     }
   }
 
-  Future<List<FarmingTask>> getTasksForDate(String farmId, DateTime date) async {
+  Future<List<domain.FarmingTask>> getTasksForDate(String farmId, DateTime date) async {
     final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final rows = await _db.select(_db.farmingCalendar)
       .where((t) => t.farmId.equals(farmId) & t.taskDate.equals(dateStr))
       .get();
-    return rows.map((r) => FarmingTask(
+    return rows.map((r) => domain.FarmingTask(
       id: r.id,
       farmId: r.farmId,
       taskDate: r.taskDate,
@@ -159,7 +160,7 @@ class LocalDatasource {
   }
 
   // ── Market Prices ──
-  Future<void> saveMarketPrices(List<MarketPrice> prices) async {
+  Future<void> saveMarketPrices(List<domain.MarketPrice> prices) async {
     for (final p in prices) {
       await _db.into(_db.marketPrices).insertOnConflictUpdate(
         MarketPricesCompanion.insert(
@@ -173,12 +174,12 @@ class LocalDatasource {
     }
   }
 
-  Future<List<MarketPrice>> getMarketPrices(String crop) async {
+  Future<List<domain.MarketPrice>> getMarketPrices(String crop) async {
     final rows = await _db.select(_db.marketPrices)
       .where((m) => m.crop.equals(crop))
       .orderBy([(m) => OrderingTerm.desc(m.date)])
       .get();
-    return rows.map((r) => MarketPrice(
+    return rows.map((r) => domain.MarketPrice(
       crop: r.crop,
       market: r.market,
       price: r.price,
