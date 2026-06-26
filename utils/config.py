@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # Cloudflare Worker webhook for feedback → GitHub Issues
     feedback_webhook_url: str = ""
 
+    # Admin token for CI/CD to register releases
+    admin_token: str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "env_ignore_case": True}
 
 

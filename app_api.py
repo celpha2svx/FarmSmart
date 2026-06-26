@@ -210,3 +210,41 @@ async def track_batch(events: list[AnalyticsRequest], db: Session = Depends(get_
 async def analytics_summary(db: Session = Depends(get_db)):
     """Get aggregate stats (admin only)."""
     return get_analytics_summary(db)
+
+
+# ── Admin: Register new release (called by CI/CD) ────────────────────────────
+
+class ReleaseRegister(BaseModel):
+    version_name: str
+    version_code: int
+    apk_url: str
+    changelog: str = ""
+    mandatory: bool = False
+
+@router.post("/version/release")
+async def register_release(req: ReleaseRegister, auth: str = Header(""), db: Session = Depends(get_db)):
+    """Register new app release. Called by GitHub Actions CI/CD."""
+    # Simple bearer token check
+    if auth != f"Bearer {settings.admin_token}":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    from database.operations import generate_uuid, utcnow_iso
+    from database.models import AppRelease
+    release = AppRelease(
+        version_name=req.version_name,
+        version_code=req.version_code,
+        apk_url=req.apk_url,
+        changelog=req.changelog,
+        mandatory=1 if req.mandatory else 0,
+        release_date=utcnow_iso(),
+    )
+    # Upsert
+    existing = db.query(AppRelease).filter(AppRelease.version_name == req.version_name).first()
+    if existing:
+        existing.version_code = req.version_code
+        existing.apk_url = req.apk_url
+        existing.changelog = req.changelog
+        existing.mandatory = 1 if req.mandatory else 0
+    else:
+        db.add(release)
+    db.commit()
+    return {"status": "ok", "version_name": req.version_name}
