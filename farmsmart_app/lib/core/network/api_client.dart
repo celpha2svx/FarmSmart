@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:farmsmart_app/core/constants/api_constants.dart';
-import 'package:farmsmart_app/core/constants/app_constants.dart';
 
 /// Pre-configured Dio HTTP client for FarmSmart backend.
 class FarmSmartApiClient {

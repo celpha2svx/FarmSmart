@@ -23,17 +23,17 @@ class LocalDatasource {
         lat: farm.lat,
         lon: farm.lon,
         farmSize: Value(farm.farmSize),
-        subscribed: farm.subscribed,
-        dailyUpdate: farm.dailyUpdate,
+        subscribed: Value(farm.subscribed),
+        dailyUpdate: Value(farm.dailyUpdate),
         registered: farm.registered,
       ),
     );
   }
 
   Future<domain.Farm?> getFarm(String phone) async {
-    final rows = await _db.select(_db.farms)
-      .where((f) => f.phone.equals(phone))
-      .get();
+    final rows = await (_db.select(_db.farms)
+      ..where((f) => f.phone.equals(phone))
+    ).get();
     if (rows.isEmpty) return null;
     final r = rows.first;
     return domain.Farm(
@@ -69,11 +69,11 @@ class LocalDatasource {
   }
 
   Future<List<domain.Advisory>> getAdvisories(String farmId, {int limit = 10}) async {
-    final rows = await _db.select(_db.advisories)
-      .where((a) => a.farmId.equals(farmId))
-      .orderBy([(a) => OrderingTerm.asc(a.date)])
-      .limit(limit)
-      .get();
+    final rows = await (_db.select(_db.advisories)
+      ..where((a) => a.farmId.equals(farmId))
+      ..orderBy([(a) => OrderingTerm.asc(a.date)])
+      ..limit(limit)
+    ).get();
     return rows.map((r) => domain.Advisory(
       id: r.id,
       farmId: r.farmId,
@@ -105,10 +105,10 @@ class LocalDatasource {
   }
 
   Future<List<domain.WeatherForecast>> getWeather(String farmId) async {
-    final rows = await _db.select(_db.weatherData)
-      .where((w) => w.farmId.equals(farmId))
-      .orderBy([(w) => OrderingTerm.asc(w.date)])
-      .get();
+    final rows = await (_db.select(_db.weatherData)
+      ..where((w) => w.farmId.equals(farmId))
+      ..orderBy([(w) => OrderingTerm.asc(w.date)])
+    ).get();
     return rows.map((r) => domain.WeatherForecast(
       date: r.date,
       tempMax: r.tempMax,
@@ -139,9 +139,9 @@ class LocalDatasource {
 
   Future<List<domain.FarmingTask>> getTasksForDate(String farmId, DateTime date) async {
     final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-    final rows = await _db.select(_db.farmingCalendar)
-      .where((t) => t.farmId.equals(farmId) & t.taskDate.equals(dateStr))
-      .get();
+    final rows = await (_db.select(_db.farmingCalendar)
+      ..where((t) => t.farmId.equals(farmId) & t.taskDate.equals(dateStr))
+    ).get();
     return rows.map((r) => domain.FarmingTask(
       id: r.id,
       farmId: r.farmId,
@@ -175,10 +175,10 @@ class LocalDatasource {
   }
 
   Future<List<domain.MarketPrice>> getMarketPrices(String crop) async {
-    final rows = await _db.select(_db.marketPrices)
-      .where((m) => m.crop.equals(crop))
-      .orderBy([(m) => OrderingTerm.desc(m.date)])
-      .get();
+    final rows = await (_db.select(_db.marketPrices)
+      ..where((m) => m.crop.equals(crop))
+      ..orderBy([(m) => OrderingTerm.desc(m.date)])
+    ).get();
     return rows.map((r) => domain.MarketPrice(
       crop: r.crop,
       market: r.market,

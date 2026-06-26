@@ -46,7 +46,5 @@ class AppConstants {
   static const String currency = '₦';
   static const int smsLengthLimit = 160;
 
-  // Timeouts
-  static const Duration apiTimeout = Duration(seconds: 30);
-  static const Duration faoApiTimeout = Duration(seconds: 60);
+  // Timeouts — kept here for import convenience (referenced via AppConstants)
 }

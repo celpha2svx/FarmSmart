@@ -31,7 +31,6 @@ class FarmSmartApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
-    final connectivityStatus = ref.watch(connectivityProvider);
 
     return MaterialApp(
       title: 'FarmSmart',
