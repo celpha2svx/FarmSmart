@@ -35,6 +35,13 @@ from bot.commands import (
 from data_pipeline.scheduler import start_scheduler, stop_scheduler
 from utils.helpers import normalize_command
 from utils.config import settings
+
+# Lazy-load Telegram handler (may not be installed)
+_tg_handler = None
+try:
+    from bot.telegram_handler import handle_telegram_webhook as _tg_handler
+except ImportError:
+    logging.warning("Telegram handler not available — python-telegram-bot not installed")
 from utils.rate_limiter import is_rate_limited
 from utils.admin_alerts import notify_admin
 
@@ -248,8 +255,11 @@ async def receive_message(request: Request):
 @app.post("/telegram_webhook")
 async def telegram_webhook(request: Request):
     """Receive updates from Telegram via webhook."""
+    if _tg_handler is None:
+        logger.error("Telegram webhook called but handler not loaded")
+        return Response(status_code=500, content="Telegram handler unavailable")
     body = await request.json()
-    return await handle_telegram_webhook(body)
+    return await _tg_handler(body)
 
 
 # ── SMS webhook (Africa's Talking) ────────────────────────────────────────────
