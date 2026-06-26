@@ -26,7 +26,7 @@ dependencies:
   flutter_cache_manager: ^3.3.2
 
   # Location & Maps
-  geolocator: ^14.0.3
+  geolocator: ^14.0.2
   geocoding: ^3.0.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.0
