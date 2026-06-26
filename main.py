@@ -23,7 +23,6 @@ from bot.whatsapp_handler import (
     send_whatsapp_message, extract_message, verify_webhook_signature,
 )
 from bot.sms_handler import send_sms, sms_format
-from bot.telegram_handler import handle_telegram_webhook
 from bot.registration import (
     is_registering, start_registration, handle_registration_step
 )
@@ -36,12 +35,12 @@ from data_pipeline.scheduler import start_scheduler, stop_scheduler
 from utils.helpers import normalize_command
 from utils.config import settings
 
-# Lazy-load Telegram handler (may not be installed)
+# Lazy-load Telegram handler (no external dependency needed)
 _tg_handler = None
 try:
     from bot.telegram_handler import handle_telegram_webhook as _tg_handler
 except ImportError:
-    logging.warning("Telegram handler not available — python-telegram-bot not installed")
+    pass
 from utils.rate_limiter import is_rate_limited
 from utils.admin_alerts import notify_admin
 
@@ -259,7 +258,12 @@ async def telegram_webhook(request: Request):
         logger.error("Telegram webhook called but handler not loaded")
         return Response(status_code=500, content="Telegram handler unavailable")
     body = await request.json()
-    return await _tg_handler(body)
+    result = await _tg_handler(body)
+    # If token is missing, return 500 so Telegram records the error
+    if isinstance(result, dict) and result.get("detail") == "token_missing":
+        logger.error("TELEGRAM_TOKEN not set — webhook rejecting with 500")
+        return Response(status_code=500, content="TELEGRAM_TOKEN not configured")
+    return result
 
 
 # ── SMS webhook (Africa's Talking) ────────────────────────────────────────────

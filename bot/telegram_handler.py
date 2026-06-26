@@ -3,7 +3,6 @@ Telegram bot handler — direct API calls, no external library needed.
 """
 
 import logging
-import json
 from utils.http_client import build_client
 from utils.config import settings
 
@@ -20,6 +19,7 @@ async def send_message(chat_id: int, text: str) -> bool:
     """Send a message via Telegram Bot API."""
     token = _token()
     if not token:
+        logger.error("TELEGRAM_TOKEN not set in environment")
         return False
     try:
         client = build_client(timeout=10)
@@ -28,14 +28,20 @@ async def send_message(chat_id: int, text: str) -> bool:
             json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
         )
         resp.raise_for_status()
+        logger.info(f"Telegram message sent to {chat_id}")
         return True
     except Exception as e:
-        logger.error(f"Telegram send failed: {e}")
+        logger.error(f"Telegram send_message failed: {e}")
         return False
 
 
 async def handle_telegram_webhook(request_body: dict) -> dict:
     """Process incoming Telegram update and route to command handlers."""
+    token = _token()
+    if not token:
+        logger.critical("TELEGRAM_TOKEN is not set — cannot respond to any Telegram messages")
+        return {"status": "error", "detail": "token_missing"}
+
     try:
         message = request_body.get("message", {})
         chat_id = message.get("chat", {}).get("id")
@@ -68,7 +74,7 @@ async def handle_telegram_webhook(request_body: dict) -> dict:
                     farmer = get_farmer_by_phone(db, user_id)
                     if farmer:
                         await send_message(chat_id, f"Welcome back, {farmer.location_raw}!\n\nSend SOIL, WEATHER, or PEST for your farm report.")
-                        return {"status": "processed"}
+                        return {"status": "ok"}
                     msg = start_registration(user_id)
                     await send_message(chat_id, msg)
                     return {"status": "ok"}
@@ -89,7 +95,6 @@ async def handle_telegram_webhook(request_body: dict) -> dict:
                 await send_message(chat_id, msg)
                 return {"status": "ok"}
 
-            # Strip leading / for command-style messages
             if cmd.startswith("/"):
                 cmd = cmd[1:]
 
