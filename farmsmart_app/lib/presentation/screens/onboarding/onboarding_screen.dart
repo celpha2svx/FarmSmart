@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:farmsmart_app/core/constants/app_constants.dart';
 import 'package:farmsmart_app/core/localization/app_localizations.dart';
 import 'package:farmsmart_app/core/theme/colors.dart';
+import 'package:farmsmart_app/app.dart';
 
 /// 3-step farm setup: Crop → Location → Farm Size
 /// Conversation-style (one question per screen, big visual cards)
@@ -285,8 +286,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _finishOnboarding() {
-    // Save farm to local DB, set onboarding complete
     ref.read(onboardingCompleteProvider.notifier).complete();
-    Navigator.of(context).pushReplacementNamed('/home');
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const AppShell()),
+    );
   }
 }

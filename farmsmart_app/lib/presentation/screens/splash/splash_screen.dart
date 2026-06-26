@@ -4,7 +4,10 @@ import 'package:farmsmart_app/presentation/providers/connectivity_provider.dart'
 import 'package:farmsmart_app/presentation/providers/locale_provider.dart';
 import 'package:farmsmart_app/presentation/providers/core_providers.dart';
 import 'package:farmsmart_app/presentation/providers/advisory_provider.dart';
-import 'package:farmsmart_app/presentation/screens/home/home_screen.dart';
+import 'package:farmsmart_app/presentation/providers/auth_provider.dart';
+import 'package:farmsmart_app/presentation/screens/auth/phone_login_screen.dart';
+import 'package:farmsmart_app/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:farmsmart_app/app.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -33,11 +36,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _initApp() async {
-    // Wait for database init
+    final auth = ref.read(authProvider);
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
+    if (!mounted) return;
+
+    if (auth.isLoggedIn) {
+      final complete = ref.read(onboardingCompleteProvider);
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => complete ? const AppShell() : const OnboardingScreen()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
       );
     }
   }

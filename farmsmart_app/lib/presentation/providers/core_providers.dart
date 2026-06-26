@@ -31,3 +31,14 @@ final localDatasourceProvider = FutureProvider<LocalDatasource>((ref) async {
   final db = await ref.watch(databaseProvider.future);
   return LocalDatasource(db);
 });
+
+// ── Onboarding state ──
+class OnboardingNotifier extends StateNotifier<bool> {
+  OnboardingNotifier() : super(false);
+
+  void complete() => state = true;
+}
+
+final onboardingCompleteProvider = StateNotifierProvider<OnboardingNotifier, bool>((ref) {
+  return OnboardingNotifier();
+});
