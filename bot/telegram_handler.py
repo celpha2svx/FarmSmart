@@ -1,9 +1,10 @@
 """
-Telegram bot handler — direct async API calls, no external library needed.
+Telegram bot handler — direct API calls with requests.
+No external bot library needed.
 """
 
 import logging
-from utils.http_client import build_async_client
+import requests as sync_requests
 from utils.config import settings
 
 logger = logging.getLogger(__name__)
@@ -16,20 +17,20 @@ def _token() -> str:
 
 
 async def send_message(chat_id: int, text: str) -> bool:
-    """Send a message via Telegram Bot API (async)."""
+    """Send a message via Telegram Bot API."""
     token = _token()
     if not token:
-        logger.error("TELEGRAM_TOKEN not set in environment")
+        logger.error("TELEGRAM_TOKEN not set")
         return False
     try:
-        async with build_async_client(timeout=15) as client:
-            resp = await client.post(
-                f"{API_BASE}{token}/sendMessage",
-                json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
-            )
-            resp.raise_for_status()
-            logger.info(f"Telegram message sent to {chat_id}")
-            return True
+        resp = sync_requests.post(
+            f"{API_BASE}{token}/sendMessage",
+            json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        logger.info(f"Telegram message sent to {chat_id}")
+        return True
     except Exception as e:
         logger.error(f"Telegram send_message failed (chat={chat_id}): {e}")
         return False
@@ -39,7 +40,7 @@ async def handle_telegram_webhook(request_body: dict) -> dict:
     """Process incoming Telegram update and route to command handlers."""
     token = _token()
     if not token:
-        logger.critical("TELEGRAM_TOKEN is not set — cannot respond to any Telegram messages")
+        logger.critical("TELEGRAM_TOKEN is not set")
         return {"status": "error", "detail": "token_missing"}
 
     try:
