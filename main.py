@@ -118,7 +118,7 @@ def send_message(phone: str, message: str) -> bool:
 async def lifespan(app: FastAPI):
     logger.info("FarmSmart starting up...")
     try:
-        start_scheduler(get_db, send_whatsapp_message)
+        start_scheduler(get_db, send_message)
     except Exception as e:
         logger.error(f"Scheduler start failed: {e}")
         notify_admin(f"Scheduler failed to start: {e}")
