@@ -15,6 +15,8 @@ jobs:
   build:
     name: Build Flutter APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: farmsmart_app
@@ -60,7 +62,7 @@ jobs:
           fi
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "FarmSmart v${{ steps.version.outputs.version }}"
           body_path: farmsmart_app/CHANGELOG.md
