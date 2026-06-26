@@ -13,7 +13,7 @@ API_BASE = "https://api.telegram.org/bot"
 
 
 def _token() -> str:
-    return settings.telegram_token
+    return settings.telegram_token.strip()
 
 
 async def send_message(chat_id: int, text: str) -> str:
