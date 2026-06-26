@@ -43,6 +43,7 @@ except ImportError:
     pass
 from utils.rate_limiter import is_rate_limited
 from utils.admin_alerts import notify_admin
+from app_api import router as app_api_router
 
 load_dotenv()
 
@@ -130,9 +131,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="FarmSmart",
     description="Precision Agriculture Advisory Platform for Nigerian Smallholder Farmers",
+    docs_url="/docs",
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# ── Mobile App API ────────────────────────────────────────────────────────────
+app.include_router(app_api_router)
 
 # ── CORS middleware (allow WhatsApp Meta servers) ──────────────────────────────
 app.add_middleware(

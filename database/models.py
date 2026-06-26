@@ -67,6 +67,88 @@ class RegistrationState(Base):
     data  = Column(Text, nullable=True)                   # JSON-encoded dict
 
 
+# ── App Auth ────────────────────────────────────────────────────────────────────
+
+class AppUser(Base):
+    """FarmSmart mobile app user (phone-based auth)."""
+    __tablename__ = "app_users"
+
+    phone      = Column(Text, primary_key=True)
+    name       = Column(Text)
+    token      = Column(Text, nullable=False)             # JWT or API token
+    created_at = Column(Text, nullable=False)             # ISO timestamp
+    last_login = Column(Text, nullable=False)             # ISO timestamp
+    data_consent = Column(Integer, default=0)             # 1=consented to data collection
+
+
+class OtpCode(Base):
+    """One-time password for phone verification."""
+    __tablename__ = "otp_codes"
+
+    phone      = Column(Text, primary_key=True)
+    code       = Column(Text, nullable=False)
+    expires_at = Column(Text, nullable=False)             # ISO timestamp
+    used       = Column(Integer, default=0)
+
+
+# ── Announcements ───────────────────────────────────────────────────────────────
+
+class Announcement(Base):
+    """In-app broadcast messages from admin."""
+    __tablename__ = "announcements"
+
+    id         = Column(Text, primary_key=True)
+    title      = Column(Text, nullable=False)
+    body       = Column(Text, nullable=False)
+    level      = Column(Text, default="info")            # 'info' | 'warning' | 'update'
+    active     = Column(Integer, default=1)              # 1=show, 0=archived
+    created_at = Column(Text, nullable=False)
+
+
+# ── Feedback ────────────────────────────────────────────────────────────────────
+
+class AppFeedback(Base):
+    """User feedback → forwarded to GitHub Issues."""
+    __tablename__ = "app_feedback"
+
+    id         = Column(Text, primary_key=True)
+    phone      = Column(Text, nullable=False)
+    category   = Column(Text)                            # 'bug' | 'feature' | 'other'
+    message    = Column(Text, nullable=False)
+    app_version = Column(Text)
+    device_info = Column(Text)
+    github_issue_url = Column(Text)
+    created_at = Column(Text, nullable=False)
+
+
+# ── App Releases (for OTA update) ─────────────────────────────────────────────
+
+class AppRelease(Base):
+    """Latest app version for in-app update check."""
+    __tablename__ = "app_releases"
+
+    version_name = Column(Text, primary_key=True)        # e.g. "1.0.0"
+    version_code = Column(Integer, nullable=False)
+    apk_url      = Column(Text, nullable=False)          # GitHub release URL
+    changelog    = Column(Text)
+    release_date = Column(Text, nullable=False)
+    mandatory    = Column(Integer, default=0)             # 1=force update
+
+
+# ── Analytics Events ────────────────────────────────────────────────────────────
+
+class AnalyticsEvent(Base):
+    """Anonymized usage data for ML/product improvement."""
+    __tablename__ = "analytics_events"
+
+    id          = Column(Text, primary_key=True)
+    phone       = Column(Text, nullable=False)
+    event_type  = Column(Text, nullable=False)            # 'advisory_view' | 'scan' | 'login' | etc
+    event_data  = Column(Text)                            # JSON blob
+    created_at  = Column(Text, nullable=False)
+    synced_at   = Column(Text)                            # when uploaded from offline
+
+
 def init_db(database_url: str, **kwargs):
     """Create all tables if they don't exist."""
     engine = create_engine(database_url, **kwargs)

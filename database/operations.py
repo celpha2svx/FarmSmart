@@ -3,12 +3,16 @@ Database CRUD operations for FarmSmart.
 All DB access goes through these functions — no raw SQL elsewhere.
 """
 
+import json
 import logging
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from database.models import Farmer, Alert, DegreeDay, RegistrationState
+from database.models import (
+    Farmer, Alert, DegreeDay, RegistrationState,
+    AppUser, OtpCode, Announcement, AppFeedback, AppRelease, AnalyticsEvent,
+)
 from utils.helpers import generate_uuid, utcnow_iso
 
 logger = logging.getLogger(__name__)
@@ -178,3 +182,118 @@ def delete_registration_state(db: Session, phone: str) -> None:
     if record:
         db.delete(record)
         db.commit()
+
+
+# ── App Auth ─────────────────────────────────────────────────────────────────────
+
+import hashlib, random, string
+from datetime import datetime, timedelta
+
+def generate_otp(length: int = 6) -> str:
+    return ''.join(random.choices(string.digits, k=length))
+
+def send_otp_code(db: Session, phone: str) -> str:
+    """Generate OTP, store it, return the code (for SMS sending)."""
+    code = generate_otp()
+    expires = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+    existing = db.query(OtpCode).filter(OtpCode.phone == phone).first()
+    if existing:
+        existing.code = code
+        existing.expires_at = expires
+        existing.used = 0
+    else:
+        db.add(OtpCode(phone=phone, code=code, expires_at=expires))
+    db.commit()
+    return code
+
+def verify_otp(db: Session, phone: str, code: str) -> bool:
+    record = db.query(OtpCode).filter(
+        OtpCode.phone == phone,
+        OtpCode.code == code,
+        OtpCode.used == 0,
+        OtpCode.expires_at > datetime.utcnow().isoformat(),
+    ).first()
+    if not record:
+        return False
+    record.used = 1
+    db.commit()
+    return True
+
+def get_or_create_app_user(db: Session, phone: str) -> AppUser:
+    user = db.query(AppUser).filter(AppUser.phone == phone).first()
+    if not user:
+        token = hashlib.sha256(f"{phone}:{datetime.utcnow().isoformat()}".encode()).hexdigest()
+        now = datetime.utcnow().isoformat()
+        user = AppUser(phone=phone, token=token, created_at=now, last_login=now)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        user.last_login = datetime.utcnow().isoformat()
+        db.commit()
+    return user
+
+def verify_app_token(db: Session, phone: str, token: str) -> bool:
+    user = db.query(AppUser).filter(AppUser.phone == phone, AppUser.token == token).first()
+    return user is not None
+
+
+# ── Announcements ───────────────────────────────────────────────────────────────
+
+def get_active_announcements(db: Session) -> list[Announcement]:
+    return db.query(Announcement).filter(Announcement.active == 1).order_by(Announcement.created_at.desc()).all()
+
+def create_announcement(db: Session, title: str, body: str, level: str = "info") -> Announcement:
+    a = Announcement(
+        id=generate_uuid(), title=title, body=body,
+        level=level, active=1, created_at=utcnow_iso(),
+    )
+    db.add(a)
+    db.commit()
+    return a
+
+
+# ── Feedback ────────────────────────────────────────────────────────────────────
+
+def save_feedback(db: Session, phone: str, message: str, category: str = None,
+                  app_version: str = None, device_info: str = None,
+                  github_issue_url: str = None) -> AppFeedback:
+    fb = AppFeedback(
+        id=generate_uuid(), phone=phone, category=category, message=message,
+        app_version=app_version, device_info=device_info,
+        github_issue_url=github_issue_url, created_at=utcnow_iso(),
+    )
+    db.add(fb)
+    db.commit()
+    return fb
+
+
+# ── App Release ─────────────────────────────────────────────────────────────────
+
+def get_latest_release(db: Session) -> Optional[AppRelease]:
+    return db.query(AppRelease).order_by(AppRelease.version_code.desc()).first()
+
+
+# ── Analytics ────────────────────────────────────────────────────────────────────
+
+def log_analytics_event(db: Session, phone: str, event_type: str, event_data: dict = None) -> AnalyticsEvent:
+    ev = AnalyticsEvent(
+        id=generate_uuid(), phone=phone, event_type=event_type,
+        event_data=json.dumps(event_data) if event_data else None,
+        created_at=utcnow_iso(), synced_at=utcnow_iso(),
+    )
+    db.add(ev)
+    db.commit()
+    return ev
+
+def get_analytics_summary(db: Session, days: int = 30) -> dict:
+    """Return anonymized aggregate stats for ML/product insights."""
+    from sqlalchemy import func
+    total_farmers = db.query(Farmer).count()
+    top_crops = db.query(Farmer.crop, func.count(Farmer.crop).label('count')).group_by(Farmer.crop).order_by(func.count(Farmer.crop).desc()).limit(5).all()
+    total_alerts = db.query(Alert).count()
+    return {
+        "total_farmers": total_farmers,
+        "top_crops": [{"crop": c, "count": cnt} for c, cnt in top_crops],
+        "total_alerts": total_alerts,
+    }

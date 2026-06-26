@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Slack alerts (optional)
     slack_webhook_url: str = ""
 
+    # Cloudflare Worker webhook for feedback → GitHub Issues
+    feedback_webhook_url: str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "env_ignore_case": True}
 
 
