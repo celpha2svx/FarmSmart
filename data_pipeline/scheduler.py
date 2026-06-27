@@ -45,6 +45,15 @@ def start_scheduler(db_session_factory, send_fn):
         replace_existing=True,
     )
 
+    # Daily at 12 PM WAT — scrape market prices
+    _scheduler.add_job(
+        func=lambda: _scrape_market_prices(db_session_factory),
+        trigger=CronTrigger(hour=12, minute=0),
+        id="market_prices",
+        name="Daily market price scrape",
+        replace_existing=True,
+    )
+
     _scheduler.start()
     logger.info("FarmSmart scheduler started (6-hourly fetch + 6AM daily alerts)")
 
@@ -59,9 +68,10 @@ def stop_scheduler():
 def _prefetch_all_farms(db_session_factory):
     """Fetch and log weather/soil data for all active farms."""
     try:
-        from database.operations import get_all_subscribed_farmers
+        from database.operations import get_all_subscribed_farmers, seed_task_templates, upsert_market_prices
         from data_pipeline.fetchers.weather import fetch_weather_forecast
         from data_pipeline.fetchers.soil_moisture import fetch_soil_moisture
+        from database.market_scraper import scrape_all_prices
 
         db = db_session_factory()
         farmers = get_all_subscribed_farmers(db)
@@ -118,3 +128,26 @@ def _send_daily_updates(db_session_factory, send_fn):
         db.close()
     except Exception as e:
         logger.error(f"Daily update job failed: {e}")
+
+
+def _scrape_market_prices(db_session_factory):
+    """Scrape market prices and persist to DB."""
+    import asyncio
+    try:
+        db = db_session_factory()
+        prices = asyncio.run(scrape_all_prices())
+        count = upsert_market_prices(db, prices)
+        logger.info(f"Market price scrape: {count} prices saved")
+        db.close()
+    except Exception as e:
+        logger.error(f"Market price scrape failed: {e}")
+
+
+def _seed_templates(db_session_factory):
+    """Seed task templates on first run."""
+    try:
+        db = db_session_factory()
+        seed_task_templates(db)
+        db.close()
+    except Exception as e:
+        logger.error(f"Template seeding failed: {e}")

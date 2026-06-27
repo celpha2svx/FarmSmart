@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     # Admin token for CI/CD to register releases
     admin_token: str = ""
 
+    # HuggingFace Inference API token (free tier)
+    huggingface_token: str = ""
+    huggingface_model: str = "pierreguillou/nlp-v2.0-classifier-plant-disease"
+
+    # AFEX API
+    afex_api_base: str = "https://api-md.afexnigeria.com/AFEXMD/api/v1"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "env_ignore_case": True}
 
 
