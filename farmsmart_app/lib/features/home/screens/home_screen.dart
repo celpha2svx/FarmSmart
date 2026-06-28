@@ -7,6 +7,7 @@ import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/app_chip.dart';
 import '../../../core/l10n/locale_provider.dart';
 import '../../../core/l10n/translations.dart';
+import '../../../navigation/main_shell.dart';
 import '../providers/advisory_provider.dart';
 import '../providers/announcements_provider.dart';
 
@@ -359,10 +360,7 @@ class _QuickActionsGrid extends ConsumerWidget {
                 child: _ActionButton(
                   emoji: '\u{1F33F}',
                   label: t.t('advisory'),
-                  onTap: () {
-                    ref.read(currentTabProvider.notifier).state = 0;
-                    Scrollable.ensureVisible(context, alignment: 0.3);
-                  },
+                  onTap: () => ref.read(currentTabProvider.notifier).state = 0,
                 ),
               ),
             ],
