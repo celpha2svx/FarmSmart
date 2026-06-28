@@ -31,6 +31,20 @@ class ShimmerBox extends StatelessWidget {
   }
 }
 
+class ShimmerLoader extends StatelessWidget {
+  const ShimmerLoader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: const ShimmerBox(height: 200),
+      ),
+    );
+  }
+}
+
 class AdvisoryCardShimmer extends StatelessWidget {
   const AdvisoryCardShimmer({super.key});
 

@@ -44,7 +44,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final t = ref.watch(translationsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: const Color(0xFFF8FAF9),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: OfflineBanner()),
@@ -87,13 +87,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
             error: (e, _) => SliverFillRemaining(
               hasScrollBody: true,
-              child: ErrorState(message: e.toString()),
+              child: ErrorCard(message: e.toString()),
             ),
             data: (tasks) {
               if (tasks.isEmpty) {
                 return SliverFillRemaining(
                   hasScrollBody: true,
-                  child: EmptyState(message: t.t('no_tasks')),
+                  child: EmptyState(title: t.t('no_tasks')),
                 );
               }
               return SliverList(
@@ -140,8 +140,8 @@ class _TaskItem extends ConsumerWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: AppRadius.sm,
-          boxShadow: AppShadows.sm,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          boxShadow: [AppShadows.sm],
         ),
         child: Row(
           children: [
@@ -218,7 +218,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
             controller: _controller,
             decoration: InputDecoration(
               hintText: t.t('add_task'),
-              border: OutlineInputBorder(borderRadius: AppRadius.sm),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
             ),
           ),
           const SizedBox(height: 16),
@@ -229,7 +229,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.green600,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
             ),
             child: Text(t.t('add_task'), style: const TextStyle(color: Colors.white)),
           ),

@@ -49,6 +49,7 @@ class AppColors {
 
   // Additional semantic
   static const Color red500 = Color(0xFFE53935);
+  static const Color red100 = Color(0xFFFFCDD2);
   static const Color amber500 = Color(0xFFFFB300);
   static const Color blue = Color(0xFF42A5F5);
 

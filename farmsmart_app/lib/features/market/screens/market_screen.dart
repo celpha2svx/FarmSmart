@@ -51,7 +51,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
                           color: selected ? AppColors.green600 : AppColors.surface,
-                          borderRadius: AppRadius.full,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
                           border: Border.all(color: selected ? AppColors.green600 : AppColors.border),
                         ),
                         child: Row(
@@ -80,7 +80,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             ),
             error: (e, _) => SliverFillRemaining(
               hasScrollBody: true,
-              child: ErrorState(message: e.toString()),
+              child: ErrorCard(message: e.toString()),
             ),
             data: (data) => SliverList(
               delegate: SliverChildListDelegate([
@@ -115,8 +115,8 @@ class _PriceHeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.md,
-        boxShadow: AppShadows.md,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: [AppShadows.md],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +129,7 @@ class _PriceHeroCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: changeColor.withOpacity(0.1),
-                  borderRadius: AppRadius.full,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
                 child: Text('${data.changePercent >= 0 ? '+' : ''}${data.changePercent.toStringAsFixed(1)}%',
                   style: TextStyle(color: changeColor, fontWeight: FontWeight.w600)),
@@ -198,8 +198,8 @@ class _MarketRow extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: AppRadius.sm,
-          boxShadow: AppShadows.sm,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          boxShadow: [AppShadows.sm],
         ),
         child: Row(
           children: [

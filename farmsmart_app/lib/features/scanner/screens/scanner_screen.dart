@@ -92,7 +92,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.green600,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
                     ),
                     icon: const Icon(Icons.camera_alt, color: Colors.white),
                     label: Text(t.t('take_photo'), style: const TextStyle(color: Colors.white, fontSize: 16)),
@@ -106,7 +106,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.white38),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
                     ),
                     icon: const Icon(Icons.photo_library, color: Colors.white70),
                     label: Text(t.t('choose_gallery'), style: const TextStyle(color: Colors.white70, fontSize: 16)),
@@ -128,20 +128,19 @@ class _FramePainter extends CustomPainter {
       ..color = AppColors.green400
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
-    const cornerLength = 24;
-    final r = 24.0;
+    const cl = 24.0;
 
-    canvas.drawLine(const Offset(0, cornerLength), const Offset(0, 0), paint);
-    canvas.drawLine(const Offset(0, 0), Offset(cornerLength, 0), paint);
+    canvas.drawLine(Offset(0, cl), Offset.zero, paint);
+    canvas.drawLine(Offset.zero, Offset(cl, 0), paint);
 
-    canvas.drawLine(Offset(size.width - cornerLength, 0), Offset(size.width, 0), paint);
-    canvas.drawLine(Offset(size.width, 0), Offset(size.width, cornerLength), paint);
+    canvas.drawLine(Offset(size.width - cl, 0), Offset(size.width, 0), paint);
+    canvas.drawLine(Offset(size.width, 0), Offset(size.width, cl), paint);
 
-    canvas.drawLine(const Offset(0, size.height - cornerLength), const Offset(0, size.height), paint);
-    canvas.drawLine(Offset(0, size.height), Offset(cornerLength, size.height), paint);
+    canvas.drawLine(Offset(0, size.height - cl), Offset(0, size.height), paint);
+    canvas.drawLine(Offset(0, size.height), Offset(cl, size.height), paint);
 
-    canvas.drawLine(Offset(size.width - cornerLength, size.height), Offset(size.width, size.height), paint);
-    canvas.drawLine(Offset(size.width, size.height), Offset(size.width, size.height - cornerLength), paint);
+    canvas.drawLine(Offset(size.width - cl, size.height), Offset(size.width, size.height), paint);
+    canvas.drawLine(Offset(size.width, size.height), Offset(size.width, size.height - cl), paint);
   }
 
   @override

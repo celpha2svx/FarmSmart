@@ -65,8 +65,8 @@ class ScanResultScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: AppRadius.md,
-                  boxShadow: AppShadows.md,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  boxShadow: [AppShadows.md],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +130,7 @@ class ScanResultScreen extends ConsumerWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.green600,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
                       ),
                       icon: const Text('\u{1F504}', style: TextStyle(fontSize: 16)),
                       label: Text(t.t('scan_crop'),
