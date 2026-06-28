@@ -1,79 +1,46 @@
 import 'package:dio/dio.dart';
-import 'package:farmsmart_app/core/constants/api_constants.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Pre-configured Dio HTTP client for FarmSmart backend.
 class FarmSmartApiClient {
+  static const _baseUrl = 'https://farmsmart-dlou.onrender.com';
   late final Dio _dio;
+  final _storage = const FlutterSecureStorage();
 
   FarmSmartApiClient() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.farmsmartBaseUrl,
-        connectTimeout: AppConstants.apiTimeout,
-        receiveTimeout: AppConstants.apiTimeout,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ),
-    );
-
-    _dio.interceptors.addAll([
-      _LogInterceptor(),
-      _RetryInterceptor(),
-    ]);
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 15),
+    ));
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await _storage.read(key: 'auth_token');
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+    ));
   }
 
-  Dio get dio => _dio;
-
-  Future<Response> get(String path, {Map<String, dynamic>? queryParams}) {
-    return _dio.get(path, queryParameters: queryParams);
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? data}) async {
+    final res = await _dio.post(path, data: data);
+    return res.data;
   }
 
-  Future<Response> post(String path, {dynamic data}) {
-    return _dio.post(path, data: data);
-  }
-}
-
-/// Lightweight HTTP client for FAO APIs (different base URL, longer timeout).
-class FaoApiClient {
-  late final Dio _dio;
-
-  FaoApiClient() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.faoWaporBaseUrl,
-        connectTimeout: AppConstants.faoApiTimeout,
-        receiveTimeout: AppConstants.faoApiTimeout,
-      ),
-    );
+  Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? params}) async {
+    final res = await _dio.get(path, queryParameters: params);
+    return res.data;
   }
 
-  Future<Response> get(String path, {Map<String, dynamic>? queryParams}) {
-    return _dio.get(path, queryParameters: queryParams);
-  }
-}
-
-class _LogInterceptor extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    handler.next(options);
-  }
-
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    handler.next(response);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    handler.next(err);
-  }
-}
-
-class _RetryInterceptor extends Interceptor {
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    handler.next(err);
+  Future<Map<String, dynamic>> uploadFile(String path, String filePath) async {
+    final formData = FormData.fromMap({
+      'image': await MultipartFile.fromFile(filePath),
+    });
+    final res = await _dio.post(path, data: formData, options: Options(
+      headers: {'Content-Type': 'multipart/form-data'},
+      receiveTimeout: const Duration(seconds: 30),
+    ));
+    return res.data;
   }
 }

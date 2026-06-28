@@ -1,0 +1,173 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pinput/pinput.dart';
+import '../../../core/theme/app_theme.dart';
+import '../providers/auth_provider.dart';
+
+class OtpScreen extends ConsumerStatefulWidget {
+  const OtpScreen({super.key});
+
+  @override
+  ConsumerState<OtpScreen> createState() => _OtpScreenState();
+}
+
+class _OtpScreenState extends ConsumerState<OtpScreen> {
+  final _pinController = TextEditingController();
+  String get _phone => ModalRoute.of(context)?.settings.arguments as String? ?? '';
+  int _secondsRemaining = 60;
+  Timer? _timer;
+  bool _canResend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _canResend = false;
+    _secondsRemaining = 60;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining == 0) {
+        setState(() => _canResend = true);
+        timer.cancel();
+      } else {
+        setState(() => _secondsRemaining--);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _onCompleted(String pin) async {
+    final authNotifier = ref.read(authProvider.notifier);
+    final success = await authNotifier.verifyOtp(phone: _phone, otp: pin);
+    if (!mounted) return;
+    if (success) {
+      final completed = await authNotifier.hasCompletedOnboarding();
+      if (!mounted) return;
+      if (completed) {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      } else {
+        Navigator.pushNamedAndRemoveUntil(context, '/onboarding', (_) => false);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Wrong code. Please try again.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final defaultPinTheme = PinTheme(
+      width: 48,
+      height: 56,
+      textStyle: const TextStyle(
+        fontSize: 22,
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
+
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.green900,
+              AppColors.green800,
+              AppColors.green700,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Verify Phone',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'We sent a 6-digit code to $_phone',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                const SizedBox(height: 40),
+                Center(
+                  child: Pinput(
+                    controller: _pinController,
+                    length: 6,
+                    defaultPinTheme: defaultPinTheme,
+                    focusedPinTheme: defaultPinTheme.copyWith(
+                      decoration: defaultPinTheme.decoration!.copyWith(
+                        border: Border.all(color: Colors.white),
+                      ),
+                    ),
+                    onCompleted: _onCompleted,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Center(
+                  child: _canResend
+                      ? TextButton(
+                          onPressed: () {
+                            _pinController.clear();
+                            _startTimer();
+                          },
+                          child: Text(
+                            'Resend Code',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          'Resend code in $_secondsRemaining s',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 15,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
