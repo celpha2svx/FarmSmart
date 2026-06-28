@@ -3,46 +3,87 @@ import '../../../core/network/api_client.dart';
 
 class MarketEntry {
   final String name;
-  final double pricePerBag;
-  final String distanceKm;
-  final String updatedAgo;
-  const MarketEntry({required this.name, required this.pricePerBag, required this.distanceKm, required this.updatedAgo});
+  final double priceNgn;
+  final String unit;
+  final String priceDate;
+  final String source;
+  const MarketEntry({
+    required this.name,
+    required this.priceNgn,
+    required this.unit,
+    required this.priceDate,
+    required this.source,
+  });
 }
 
 class MarketData {
   final String crop;
-  final double currentPrice;
+  final double? currentPrice;
+  final String? currentMarket;
+  final String? currentUnit;
+  final String? priceDate;
   final double changePercent;
   final List<double> weeklyPrices;
   final List<MarketEntry> markets;
-  final String updatedAgo;
+
   const MarketData({
-    required this.crop, required this.currentPrice, required this.changePercent,
-    required this.weeklyPrices, required this.markets, required this.updatedAgo,
+    required this.crop,
+    this.currentPrice,
+    this.currentMarket,
+    this.currentUnit,
+    this.priceDate,
+    required this.changePercent,
+    required this.weeklyPrices,
+    required this.markets,
   });
 }
 
 final marketPricesProvider = FutureProvider.family<MarketData, String>((ref, crop) async {
   final api = FarmSmartApiClient();
-  final res = await api.get('/market_prices', params: {'crop': crop});
-  final data = res['data'] as Map<String, dynamic>? ?? {};
-  final marketsList = (data['markets'] as List<dynamic>?)?.map((m) {
-    final mm = m as Map<String, dynamic>;
+  final res = await api.get('/api/market/prices', params: {
+    'crop': crop.toLowerCase(),
+    'days': '7',
+  });
+
+  final prices = res['prices'] as List<dynamic>? ?? [];
+  final latestRaw = res['latest_price'] as Map<String, dynamic>?;
+
+  final entries = prices.map((p) {
+    final m = p as Map<String, dynamic>;
     return MarketEntry(
-      name: mm['name'] as String? ?? 'Unknown',
-      pricePerBag: (mm['price_per_bag'] as num?)?.toDouble() ?? 0,
-      distanceKm: mm['distance_km']?.toString() ?? '0',
-      updatedAgo: mm['updated_ago'] as String? ?? 'Today',
+      name: m['market'] as String? ?? 'Unknown Market',
+      priceNgn: (m['price_ngn'] as num?)?.toDouble() ?? 0,
+      unit: m['unit'] as String? ?? '50kg bag',
+      priceDate: m['price_date'] as String? ?? '',
+      source: m['source'] as String? ?? '',
     );
-  }).toList() ?? [];
-  final weekly = (data['weekly_prices'] as List<dynamic>?)?.map((p) => (p as num).toDouble()).toList() ?? [];
+  }).toList();
+
+  final sorted = List<MarketEntry>.from(entries)
+    ..sort((a, b) => b.priceDate.compareTo(a.priceDate));
+
+  final weeklyPrices = sorted.take(7).map((e) => e.priceNgn).toList().reversed.toList();
+
+  double changePercent = 0;
+  if (weeklyPrices.length >= 2) {
+    final first = weeklyPrices.first;
+    final last = weeklyPrices.last;
+    if (first > 0) changePercent = ((last - first) / first) * 100;
+  }
+
+  final uniqueMarkets = <String, MarketEntry>{};
+  for (final e in sorted) {
+    uniqueMarkets.putIfAbsent(e.name, () => e);
+  }
 
   return MarketData(
     crop: crop,
-    currentPrice: (data['current_price'] as num?)?.toDouble() ?? 0,
-    changePercent: (data['change_percent'] as num?)?.toDouble() ?? 0,
-    weeklyPrices: weekly,
-    markets: marketsList,
-    updatedAgo: data['updated_ago'] as String? ?? '',
+    currentPrice: latestRaw != null ? (latestRaw['price_ngn'] as num?)?.toDouble() : null,
+    currentMarket: latestRaw?['market'] as String?,
+    currentUnit: latestRaw?['unit'] as String?,
+    priceDate: latestRaw?['price_date'] as String?,
+    changePercent: changePercent,
+    weeklyPrices: weeklyPrices,
+    markets: uniqueMarkets.values.toList(),
   );
 });

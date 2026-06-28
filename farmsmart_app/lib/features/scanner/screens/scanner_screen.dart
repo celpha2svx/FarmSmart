@@ -17,12 +17,18 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   final _picker = ImagePicker();
 
   Future<void> _takePhoto() async {
-    final file = await _picker.pickImage(source: ImageSource.camera);
+    final file = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 80,
+    );
     if (file != null) _analyze(file.path);
   }
 
   Future<void> _pickGallery() async {
-    final file = await _picker.pickImage(source: ImageSource.gallery);
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (file != null) _analyze(file.path);
   }
 
@@ -30,10 +36,24 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     try {
       final result = await ref.read(scannerProvider.notifier).analyze(path);
       if (!mounted) return;
-      Navigator.push(context, MaterialPageRoute(
-        builder: (_) => ScanResultScreen(imagePath: path, result: result),
-      ));
-    } catch (_) {}
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ScanResultScreen(imagePath: path, result: result),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
   }
 
   @override
@@ -56,28 +76,44 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         children: [
           Expanded(
             child: Center(
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: CustomPaint(
-                  painter: _FramePainter(),
-                  child: Center(
-                    child: state.isAnalyzing
-                        ? Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(color: AppColors.green400),
-                              const SizedBox(height: 16),
-                              Text(t.t('analyzing'), style: const TextStyle(color: Colors.white70)),
-                            ],
-                          )
-                        : const Icon(Icons.camera_alt, size: 64, color: Colors.white24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 280,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: CustomPaint(
+                      painter: _FramePainter(),
+                      child: Center(
+                        child: state.isAnalyzing
+                            ? Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const CircularProgressIndicator(
+                                      color: AppColors.green400),
+                                  const SizedBox(height: 16),
+                                  Text(t.t('analyzing'),
+                                      style: const TextStyle(
+                                          color: Colors.white70)),
+                                ],
+                              )
+                            : const Icon(Icons.camera_alt,
+                                size: 64, color: Colors.white24),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  Text(
+                    state.isAnalyzing
+                        ? 'Scanning for pests and diseases...'
+                        : 'Point camera at your crop',
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                ],
               ),
             ),
           ),
@@ -92,10 +128,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.green600,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm)),
+                      disabledBackgroundColor: AppColors.green600.withOpacity(0.5),
                     ),
                     icon: const Icon(Icons.camera_alt, color: Colors.white),
-                    label: Text(t.t('take_photo'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    label: Text(t.t('take_photo'),
+                        style: const TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -106,10 +145,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.white38),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm)),
                     ),
                     icon: const Icon(Icons.photo_library, color: Colors.white70),
-                    label: Text(t.t('choose_gallery'), style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                    label: Text(t.t('choose_gallery'),
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 16)),
                   ),
                 ),
               ],
@@ -136,11 +178,14 @@ class _FramePainter extends CustomPainter {
     canvas.drawLine(Offset(size.width - cl, 0), Offset(size.width, 0), paint);
     canvas.drawLine(Offset(size.width, 0), Offset(size.width, cl), paint);
 
-    canvas.drawLine(Offset(0, size.height - cl), Offset(0, size.height), paint);
+    canvas.drawLine(
+        Offset(0, size.height - cl), Offset(0, size.height), paint);
     canvas.drawLine(Offset(0, size.height), Offset(cl, size.height), paint);
 
-    canvas.drawLine(Offset(size.width - cl, size.height), Offset(size.width, size.height), paint);
-    canvas.drawLine(Offset(size.width, size.height), Offset(size.width, size.height - cl), paint);
+    canvas.drawLine(Offset(size.width - cl, size.height),
+        Offset(size.width, size.height), paint);
+    canvas.drawLine(Offset(size.width, size.height),
+        Offset(size.width, size.height - cl), paint);
   }
 
   @override

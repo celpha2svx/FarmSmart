@@ -484,6 +484,47 @@ async def sync_task_state(req: TaskState, db: Session = Depends(get_db)):
     return {"status": "ok"}
 
 
+# ── Weather (Open-Meteo, no API key required) ────────────────────────────────
+
+@router.get("/weather")
+async def get_weather(
+    lat: float = Query(...),
+    lon: float = Query(...),
+):
+    """Get current weather for a location from Open-Meteo (free, no API key)."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": lat,
+                    "longitude": lon,
+                    "current": "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m",
+                    "timezone": "Africa/Lagos",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            current = data.get("current", {})
+            return {
+                "status": "ok",
+                "temperature": current.get("temperature_2m"),
+                "humidity": current.get("relative_humidity_2m"),
+                "precipitation": current.get("precipitation"),
+                "wind_speed": current.get("wind_speed_10m"),
+                "time": current.get("time"),
+            }
+    except Exception as e:
+        logger.warning(f"Weather fetch failed for ({lat}, {lon}): {e}")
+        return {
+            "status": "error",
+            "temperature": None,
+            "humidity": None,
+            "precipitation": None,
+            "wind_speed": None,
+        }
+
+
 # ── Admin: Register new release (called by CI/CD) ────────────────────────────
 
 class ReleaseRegister(BaseModel):

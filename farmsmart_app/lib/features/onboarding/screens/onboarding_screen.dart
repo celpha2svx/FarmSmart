@@ -59,21 +59,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+      setState(() => _currentStep++);
     } else {
       await ref.read(onboardingProvider.notifier).complete(
         crops: _selectedCrops,
         lga: _lga,
         farmSize: _farmSize!,
       );
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationsProvider);
+    final state = ref.watch(onboardingProvider);
+
+    ref.listen<OnboardingState>(onboardingProvider, (_, next) {
+      if (next.isComplete) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -109,6 +114,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ],
               ),
             ),
+            if (state.error != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.red100,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: AppColors.red500),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: AppColors.red500, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        state.error!,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.red500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Container(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               decoration: BoxDecoration(
@@ -126,10 +157,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   if (_currentStep > 0)
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => _pageController.previousPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        ),
+                        onPressed: state.isLoading
+                            ? null
+                            : () => _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                ),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 52),
                         ),
@@ -139,10 +172,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   if (_currentStep > 0) const SizedBox(width: 12),
                   Expanded(
                     flex: _currentStep > 0 ? 2 : 1,
-                    child: PrimaryButton(
-                      label: _currentStep < 2 ? t.t('next') : '\u{1F331} ${t.t('get_started')}',
-                      onTap: _canContinue ? _onContinue : null,
-                    ),
+                    child: state.isLoading
+                        ? Container(
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: AppColors.green600,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              ),
+                            ),
+                          )
+                        : PrimaryButton(
+                            label: _currentStep < 2
+                                ? t.t('next')
+                                : '\u{1F331} ${t.t('get_started')}',
+                            onTap: _canContinue ? _onContinue : null,
+                          ),
                   ),
                 ],
               ),
@@ -182,7 +235,10 @@ class _StepCropsState extends State<_StepCrops> {
           const SizedBox(height: 4),
           Text(
             t.t('step_1_sub'),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey600),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.grey600),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -206,28 +262,41 @@ class _StepCropsState extends State<_StepCrops> {
                         _selected.add(crop['name']!);
                       }
                     });
-                    context.findAncestorStateOfType<_OnboardingScreenState>()?.setState(() {});
+                    final parentState =
+                        context.findAncestorStateOfType<_OnboardingScreenState>();
+                    if (parentState != null) {
+                      parentState._selectedCrops.clear();
+                      parentState._selectedCrops.addAll(_selected);
+                      parentState.setState(() {});
+                    }
                   },
                   child: Container(
                     decoration: BoxDecoration(
                       color: isSelected ? AppColors.green50 : AppColors.white,
                       borderRadius: BorderRadius.circular(AppRadius.lg),
                       border: Border.all(
-                        color: isSelected ? AppColors.green600 : AppColors.grey300,
+                        color: isSelected
+                            ? AppColors.green600
+                            : AppColors.grey300,
                         width: isSelected ? 2 : 1,
                       ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(crop['emoji']!, style: const TextStyle(fontSize: 32)),
+                        Text(crop['emoji']!,
+                            style: const TextStyle(fontSize: 32)),
                         const SizedBox(height: 6),
                         Text(
                           crop['name']!,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            color: isSelected ? AppColors.green800 : AppColors.grey700,
-                          ),
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.green800
+                                    : AppColors.grey700,
+                              ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -266,16 +335,20 @@ class _StepLocation extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             t.t('step_2_sub'),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey600),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.grey600),
           ),
           const SizedBox(height: 20),
           TextField(
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: 'e.g. Zaria, Kaduna North, Ibadan...',
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: Icon(Icons.search),
             ),
             onChanged: (v) {
-              final state = context.findAncestorStateOfType<_OnboardingScreenState>();
+              final state =
+                  context.findAncestorStateOfType<_OnboardingScreenState>();
               if (state != null) {
                 state._lga = v;
                 state.setState(() {});
@@ -286,11 +359,21 @@ class _StepLocation extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: ['Zaria', 'Kano', 'Ibadan', 'Abuja', 'Kaduna', 'Lagos']
+            children: [
+              'Zaria',
+              'Kano',
+              'Ibadan',
+              'Abuja',
+              'Kaduna',
+              'Lagos',
+              'Jos',
+              'Enugu',
+            ]
                 .map((loc) => ActionChip(
                       label: Text(loc),
                       onPressed: () {
-                        final state = context.findAncestorStateOfType<_OnboardingScreenState>();
+                        final state = context
+                            .findAncestorStateOfType<_OnboardingScreenState>();
                         if (state != null) {
                           state._lga = loc;
                           state.setState(() {});
@@ -312,7 +395,8 @@ class _StepSize extends StatelessWidget {
   Widget build(BuildContext context) {
     final container = ProviderScope.containerOf(context);
     final t = container.read(translationsProvider);
-    final selected = context.findAncestorStateOfType<_OnboardingScreenState>()?._farmSize;
+    final selected =
+        context.findAncestorStateOfType<_OnboardingScreenState>()?._farmSize;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -327,14 +411,18 @@ class _StepSize extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             t.t('step_3_sub'),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey600),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.grey600),
           ),
           const SizedBox(height: 20),
           ..._OnboardingScreenState._sizes.map((size) {
             final isSelected = selected == size['key'];
             return GestureDetector(
               onTap: () {
-                final state = context.findAncestorStateOfType<_OnboardingScreenState>();
+                final state =
+                    context.findAncestorStateOfType<_OnboardingScreenState>();
                 if (state != null) {
                   state._farmSize = size['key'];
                   state.setState(() {});
@@ -361,9 +449,14 @@ class _StepSize extends StatelessWidget {
                         children: [
                           Text(
                             size['label']!,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                ),
                           ),
                           Text(
                             size['desc']!,
@@ -373,7 +466,8 @@ class _StepSize extends StatelessWidget {
                       ),
                     ),
                     if (isSelected)
-                      const Icon(Icons.check_circle, color: AppColors.green600, size: 24),
+                      const Icon(Icons.check_circle,
+                          color: AppColors.green600, size: 24),
                   ],
                 ),
               ),
