@@ -129,14 +129,14 @@ class OTAUpdateScreen extends ConsumerWidget {
       return PrimaryButton(
         label: t.t('downloading'),
         icon: Icons.downloading,
-        onPressed: null,
+        onTap: null,
       );
     }
     if (ota.updateAvailable) {
       return PrimaryButton(
         label: t.t('install'),
         icon: Icons.download,
-        onPressed: () => ref.read(otaProvider.notifier).downloadUpdate(),
+        onTap: () => ref.read(otaProvider.notifier).downloadUpdate(),
       );
     }
     return OutlinedButton.icon(

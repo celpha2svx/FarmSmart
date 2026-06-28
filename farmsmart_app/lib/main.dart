@@ -53,7 +53,6 @@ class FarmSmartApp extends ConsumerWidget {
       localizationsDelegates: const [
         DefaultMaterialLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,
-        DefaultCupertinoLocalizations.delegate,
       ],
       initialRoute: '/',
       onGenerateRoute: (settings) {
