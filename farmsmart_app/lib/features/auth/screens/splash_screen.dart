@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen>
     final loggedIn = await authNotifier.checkSession();
     if (!mounted) return;
     if (loggedIn) {
-      Navigator.pushNamed(context, '/home');
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
     }
   }
 
@@ -53,7 +53,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final t = (ProviderScope.containerOf(context).read(translationsProvider));
+    final t = ProviderScope.containerOf(context).read(translationsProvider);
 
     return Scaffold(
       body: Container(
@@ -63,11 +63,7 @@ class _SplashScreenState extends State<SplashScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              AppColors.green900,
-              AppColors.green800,
-              AppColors.green700,
-            ],
+            colors: [AppColors.green900, AppColors.green800, AppColors.green700],
           ),
         ),
         child: SafeArea(
@@ -87,30 +83,29 @@ class _SplashScreenState extends State<SplashScreen>
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: const Center(
-                      child: Text(
-                        '\u{1F331}',
-                        style: TextStyle(fontSize: 48),
-                      ),
+                      child: Text('\u{1F331}', style: TextStyle(fontSize: 48)),
                     ),
                   ),
                   const SizedBox(height: 32),
                   const Text(
-                    'Farm smarter, harvest more.',
+                    'FarmSmart',
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Text(
-                      'Weather, market prices, and pest advice \u2014 all for Nigerian farmers.',
+                      'Weather, market prices, and pest advice\nfor Nigerian farmers.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withOpacity(0.8),
+                        height: 1.5,
                       ),
                     ),
                   ),
@@ -139,9 +134,9 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/signup'),
+                    onPressed: () => Navigator.pushNamed(context, '/signin'),
                     child: Text(
-                      'Already have account? Sign in',
+                      'Already have an account? Sign in',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
                         fontSize: 15,

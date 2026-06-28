@@ -6,6 +6,7 @@ import 'core/l10n/locale_provider.dart';
 import 'core/l10n/translations.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/signup_screen.dart';
+import 'features/auth/screens/signin_screen.dart';
 import 'features/auth/screens/otp_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'navigation/main_shell.dart';
@@ -61,9 +62,21 @@ class FarmSmartApp extends ConsumerWidget {
             return MaterialPageRoute(builder: (_) => const SplashScreen());
           case '/signup':
             return MaterialPageRoute(builder: (_) => const SignupScreen());
+          case '/signin':
+            return MaterialPageRoute(builder: (_) => const SigninScreen());
           case '/otp':
-            final phone = settings.arguments as String? ?? '';
-            return MaterialPageRoute(builder: (_) => OtpScreen(phone: phone));
+            final args = settings.arguments;
+            String phone = '';
+            bool isSignIn = false;
+            if (args is Map) {
+              phone = args['phone'] as String? ?? '';
+              isSignIn = args['isSignIn'] as bool? ?? false;
+            } else if (args is String) {
+              phone = args;
+            }
+            return MaterialPageRoute(
+              builder: (_) => OtpScreen(phone: phone, isSignIn: isSignIn),
+            );
           case '/onboarding':
             return MaterialPageRoute(builder: (_) => const OnboardingScreen());
           case '/home':

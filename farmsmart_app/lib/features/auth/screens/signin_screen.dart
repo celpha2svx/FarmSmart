@@ -4,33 +4,30 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/l10n/locale_provider.dart';
 import '../providers/auth_provider.dart';
 
-class SignupScreen extends ConsumerStatefulWidget {
-  const SignupScreen({super.key});
+class SigninScreen extends ConsumerStatefulWidget {
+  const SigninScreen({super.key});
 
   @override
-  ConsumerState<SignupScreen> createState() => _SignupScreenState();
+  ConsumerState<SigninScreen> createState() => _SigninScreenState();
 }
 
-class _SignupScreenState extends ConsumerState<SignupScreen> {
+class _SigninScreenState extends ConsumerState<SigninScreen> {
   final _phoneController = TextEditingController();
-  final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
     _phoneController.dispose();
-    _nameController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final phone = '+234${_phoneController.text.trim()}';
-    final name = _nameController.text.trim();
-    final sent = await ref.read(authProvider.notifier).sendOtp(phone: phone, name: name);
+    final sent = await ref.read(authProvider.notifier).sendOtp(phone: phone);
     if (!mounted) return;
     if (sent) {
-      Navigator.pushNamed(context, '/otp', arguments: {'phone': phone, 'isSignIn': false});
+      Navigator.pushNamed(context, '/otp', arguments: {'phone': phone, 'isSignIn': true});
     }
   }
 
@@ -77,9 +74,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     onPressed: isLoading ? null : () => Navigator.pop(context),
                   ),
                   const SizedBox(height: 24),
-                  Text(
-                    t.t('signup'),
-                    style: const TextStyle(
+                  const Text(
+                    'Welcome back',
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -87,50 +84,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Create your account to get started.',
+                    'Enter your phone number to sign in.',
                     style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.8)),
                   ),
-                  const SizedBox(height: 40),
-                  TextFormField(
-                    controller: _nameController,
-                    textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.next,
-                    enabled: !isLoading,
-                    decoration: InputDecoration(
-                      labelText: t.t('full_name'),
-                      prefixIcon: const Icon(Icons.person_outline, color: Colors.white70),
-                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.15),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.white, width: 1.5),
-                      ),
-                      errorStyle: const TextStyle(color: Colors.yellow),
-                    ),
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                    validator: (val) {
-                      if (val == null || val.trim().length < 2) {
-                        return 'Enter your full name';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 48),
                   TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.done,
                     maxLength: 10,
                     enabled: !isLoading,
+                    autofocus: true,
                     onFieldSubmitted: (_) => _submit(),
                     decoration: InputDecoration(
                       labelText: t.t('phone_number'),
@@ -196,22 +160,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           : const Text('Send verification code →'),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: Text(
-                      'By signing up, you agree to our Terms of Service\nand Privacy Policy.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.65)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 32),
                   Center(
                     child: TextButton(
                       onPressed: isLoading
                           ? null
-                          : () => Navigator.pushReplacementNamed(context, '/signin'),
+                          : () => Navigator.pushReplacementNamed(context, '/signup'),
                       child: Text(
-                        'Already have an account? Sign in',
+                        "Don't have an account? Sign up",
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.9),
                           fontSize: 15,
