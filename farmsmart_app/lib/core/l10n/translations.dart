@@ -507,7 +507,7 @@ class Translations {
       'pest_alerts_sub': 'Ịdọ aka ná ntị banyere ahụhụ na mpaghara gị',
       'market_alerts_sub': 'Mgbanwe ọnụahịa na ohere ahịa',
       'weather_alerts_sub': 'Ịdọ aka ná ntị ihu igwe siri ike',
-      'auto_sync_sub': 'Mekọ data na-akpaghị aka mgbe ị nọ n'ịntanetị',
+      'auto_sync_sub': 'Mekọ data na-akpaghị aka mgbe ị nọ n\'ịntanetị',
       'sync_now': 'Mekọ ugbu a',
       'sync_now_sub': 'Mekọ mgbanwe ndị na-esote',
       'clear_cache_sub': 'Tọhapụ ohere nchekwa',
