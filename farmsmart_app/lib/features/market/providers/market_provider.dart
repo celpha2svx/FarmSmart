@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_client.dart';
 
 class MarketEntry {
   final String name;
@@ -22,17 +23,26 @@ class MarketData {
 }
 
 final marketPricesProvider = FutureProvider.family<MarketData, String>((ref, crop) async {
-  // In production: call GET /api/market/prices?crop=X
+  final api = FarmSmartApiClient();
+  final res = await api.get('/market_prices', params: {'crop': crop});
+  final data = res['data'] as Map<String, dynamic>? ?? {};
+  final marketsList = (data['markets'] as List<dynamic>?)?.map((m) {
+    final mm = m as Map<String, dynamic>;
+    return MarketEntry(
+      name: mm['name'] as String? ?? 'Unknown',
+      pricePerBag: (mm['price_per_bag'] as num?)?.toDouble() ?? 0,
+      distanceKm: mm['distance_km']?.toString() ?? '0',
+      updatedAgo: mm['updated_ago'] as String? ?? 'Today',
+    );
+  }).toList() ?? [];
+  final weekly = (data['weekly_prices'] as List<dynamic>?)?.map((p) => (p as num).toDouble()).toList() ?? [];
+
   return MarketData(
     crop: crop,
-    currentPrice: crop == 'Maize' ? 38500 : crop == 'Rice' ? 57000 : crop == 'Beans' ? 40000 : 34500,
-    changePercent: 5.4,
-    weeklyPrices: [37000, 37200, 36800, 37500, 38000, 38200, 38500],
-    markets: [
-      MarketEntry(name: 'Dawanau (Kano)', pricePerBag: 38200, distanceKm: '0', updatedAgo: 'Today'),
-      MarketEntry(name: 'Mile 12 (Lagos)', pricePerBag: 42000, distanceKm: '15', updatedAgo: 'Yesterday'),
-      MarketEntry(name: 'Bodija (Ibadan)', pricePerBag: 40500, distanceKm: '8', updatedAgo: 'Today'),
-    ],
-    updatedAgo: 'Today 6:00 AM',
+    currentPrice: (data['current_price'] as num?)?.toDouble() ?? 0,
+    changePercent: (data['change_percent'] as num?)?.toDouble() ?? 0,
+    weeklyPrices: weekly,
+    markets: marketsList,
+    updatedAgo: data['updated_ago'] as String? ?? '',
   );
 });

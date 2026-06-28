@@ -9,8 +9,5 @@ class Announcement {
 }
 
 final announcementsProvider = FutureProvider<List<Announcement>>((ref) async {
-  // In production: call GET /api/announcements
-  return [
-    Announcement(id: '1', title: '🌧 Rain forecast', body: 'Heavy rain expected in Kaduna region. Ensure drainage.', level: 'warning'),
-  ];
+  return [];
 });

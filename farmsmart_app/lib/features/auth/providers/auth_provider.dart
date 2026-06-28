@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../core/network/api_client.dart';
 
 class AppUser {
   final String phone;
@@ -23,13 +24,17 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final FlutterSecureStorage _storage;
-  AuthNotifier(this._storage) : super(const AuthState());
+  final FarmSmartApiClient _api;
+  AuthNotifier(this._storage, this._api) : super(const AuthState());
 
   Future<bool> checkSession() async {
     final phone = await _storage.read(key: 'phone');
     final token = await _storage.read(key: 'auth_token');
+    final name = await _storage.read(key: 'user_name');
+    final crop = await _storage.read(key: 'user_crop');
+    final location = await _storage.read(key: 'user_location');
     if (phone != null && token != null) {
-      state = AuthState(isLoggedIn: true, user: AppUser(phone: phone, token: token));
+      state = AuthState(isLoggedIn: true, user: AppUser(phone: phone, name: name, token: token));
       return true;
     }
     return false;
@@ -38,30 +43,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> sendOtp({required String phone, required String name}) async {
     state = AuthState(isLoading: true);
     try {
-      // In real app, this calls API
+      await _api.post('/send_otp', data: {'phone': phone, 'name': name});
       await _storage.write(key: 'pending_phone', value: phone);
       await _storage.write(key: 'pending_name', value: name);
       state = AuthState(isLoading: false);
     } catch (e) {
-      state = AuthState(error: e.toString());
+      state = AuthState(error: 'Failed to send OTP. Check your network.');
     }
   }
 
   Future<bool> verifyOtp({required String phone, required String otp}) async {
     state = AuthState(isLoading: true);
     try {
-      // In real app, this calls verify API
-      final token = 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
+      final res = await _api.post('/verify_otp', data: {'phone': phone, 'otp': otp});
+      final token = res['token'] as String? ?? 'token_${DateTime.now().millisecondsSinceEpoch}';
       await _storage.write(key: 'auth_token', value: token);
       await _storage.write(key: 'phone', value: phone);
       final name = await _storage.read(key: 'pending_name');
+      if (name != null) await _storage.write(key: 'user_name', value: name);
       state = AuthState(
         isLoggedIn: true,
         user: AppUser(phone: phone, name: name, token: token),
       );
       return true;
     } catch (e) {
-      state = AuthState(error: e.toString());
+      state = AuthState(error: 'Wrong code. Please try again.');
       return false;
     }
   }
@@ -71,6 +77,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return val == 'true';
   }
 
+  Future<void> completeOnboarding({String? crop, String? location}) async {
+    if (crop != null) await _storage.write(key: 'user_crop', value: crop);
+    if (location != null) await _storage.write(key: 'user_location', value: location);
+    await _storage.write(key: 'onboarding_complete', value: 'true');
+  }
+
   Future<void> logout() async {
     await _storage.deleteAll();
     state = const AuthState();
@@ -78,5 +90,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(FlutterSecureStorage());
+  return AuthNotifier(FlutterSecureStorage(), FarmSmartApiClient());
 });

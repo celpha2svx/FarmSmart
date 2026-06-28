@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../network/api_client.dart';
 
 final apiClientProvider = Provider<FarmSmartApiClient>((ref) {
@@ -12,15 +13,16 @@ final connectivityProvider = StreamProvider<bool>((ref) {
   });
 });
 
-final farmProvider = Provider<Map<String, dynamic>>((ref) {
-  // In production: fetch from backend or local DB
+final farmProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final storage = FlutterSecureStorage();
+  final phone = await storage.read(key: 'phone') ?? '';
+  final crop = await storage.read(key: 'farm_crops') ?? 'Maize';
+  final lga = await storage.read(key: 'farm_lga') ?? '';
+  final farmSize = await storage.read(key: 'farm_size') ?? '';
   return {
-    'id': 'farm_001',
-    'crop': 'maize',
-    'lat': 11.078,
-    'lon': 7.702,
-    'lga': 'Zaria, Kaduna',
-    'size': 'medium',
-    'plantingDate': '2026-05-15',
+    'id': phone,
+    'crop': crop.split(',').first,
+    'lga': lga,
+    'size': farmSize,
   };
 });

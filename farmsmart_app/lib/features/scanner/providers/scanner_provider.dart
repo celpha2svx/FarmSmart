@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_client.dart';
 
 class ScanResult {
   final String pestId;
@@ -33,21 +34,14 @@ class ScanResultState {
 }
 
 class ScannerNotifier extends StateNotifier<ScanResultState> {
-  ScannerNotifier() : super(const ScanResultState());
+  final FarmSmartApiClient _api;
+  ScannerNotifier(this._api) : super(const ScanResultState());
 
   Future<ScanResult> analyze(String imagePath) async {
     state = const ScanResultState(isAnalyzing: true);
     try {
-      // In production: POST /api/pest/detect with image
-      await Future.delayed(const Duration(seconds: 2));
-      final result = ScanResult(
-        pestId: 'fall_armyworm',
-        pestName: 'Fall Armyworm',
-        confidence: 87.3,
-        severity: 'high',
-        treatment: 'Apply Emamectin Benzoate 1.9% EC at 2ml/L water. Spray in the evening. Alternate with Chlorantraniliprole if re-infestation occurs after 7 days.',
-        prevention: 'Scout fields weekly. Use neem extract as preventive spray every 2 weeks.',
-      );
+      final res = await _api.uploadFile('/pest_detect', imagePath);
+      final result = ScanResult.fromJson(res);
       state = ScanResultState(result: result);
       return result;
     } catch (e) {
@@ -60,5 +54,5 @@ class ScannerNotifier extends StateNotifier<ScanResultState> {
 }
 
 final scannerProvider = StateNotifierProvider<ScannerNotifier, ScanResultState>((ref) {
-  return ScannerNotifier();
+  return ScannerNotifier(FarmSmartApiClient());
 });

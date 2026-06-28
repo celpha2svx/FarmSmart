@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../core/network/api_client.dart';
 
 class AdvisoryData {
   final String title;
@@ -12,16 +14,20 @@ class AdvisoryData {
 }
 
 final advisoryProvider = FutureProvider<AdvisoryData>((ref) async {
-  // In production: call API client
-  // For now, return real-looking data
+  final storage = FlutterSecureStorage();
+  final phone = await storage.read(key: 'phone') ?? '';
+  final crop = await storage.read(key: 'farm_crops') ?? 'Maize';
+  final lga = await storage.read(key: 'farm_lga') ?? '';
+  final api = FarmSmartApiClient();
+  final res = await api.post('/advisory', data: {
+    'phone': phone,
+    'crop': crop.split(',').first,
+    'location': lga,
+  });
   return AdvisoryData(
-    title: '🌽 Maize Advisory — Tasseling & Silking',
-    message: 'Your maize is in the critical tasseling stage. Ensure adequate soil moisture for good grain fill. Apply potassium (MOP) at 100kg/ha for better yields.',
-    riskLevel: 'Low',
-    actions: [
-      'Apply irrigation if no rain in 3 days',
-      'Scout for fall armyworm in whorl leaves',
-      'Side-dress with Urea if not done at 4 weeks',
-    ],
+    title: res['title'] as String? ?? 'Farm Advisory',
+    message: res['message'] as String? ?? 'No advisory available.',
+    riskLevel: res['risk_level'] as String? ?? 'Low',
+    actions: (res['actions'] as List<dynamic>?)?.cast<String>() ?? [],
   );
 });

@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../core/network/api_client.dart';
 
 class FarmTask {
   final String id;
@@ -13,12 +15,21 @@ class FarmTask {
   });
 }
 
-// Family provider keyed on date string (YYYY-MM-DD)
 final tasksProvider = FutureProvider.family<List<FarmTask>, String>((ref, date) async {
-  // In production: call GET /api/tasks
-  return [
-    FarmTask(id: '1', name: 'Irrigate maize field', type: 'water', note: '6:00 AM - 8:00 AM', date: date, completed: false),
-    FarmTask(id: '2', name: 'Check for fall armyworm', type: 'pest', note: 'Scout whorl leaves', date: date, completed: true),
-    FarmTask(id: '3', name: 'Apply NPK 15:15:15', type: 'fertilizer', note: '200kg/ha', date: date, completed: false),
-  ];
+  final storage = FlutterSecureStorage();
+  final phone = await storage.read(key: 'phone') ?? '';
+  final api = FarmSmartApiClient();
+  final res = await api.post('/tasks', data: {'phone': phone, 'date': date});
+  final tasksList = (res['tasks'] as List<dynamic>?) ?? [];
+  return tasksList.map((t) {
+    final tm = t as Map<String, dynamic>;
+    return FarmTask(
+      id: tm['id']?.toString() ?? '',
+      name: tm['name'] as String? ?? '',
+      type: tm['type'] as String? ?? '',
+      note: tm['note'] as String?,
+      date: tm['date'] as String? ?? date,
+      completed: tm['completed'] == true,
+    );
+  }).toList();
 });

@@ -26,7 +26,7 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
-          _ProfileCard(user: auth, t: t),
+          _ProfileCard(user: auth.user, t: t),
           const SizedBox(height: 24),
           _SettingsSection(
             label: t.t('language'),
@@ -140,7 +140,7 @@ class SettingsScreen extends ConsumerWidget {
                 if (confirmed == true && context.mounted) {
                   await ref.read(authProvider.notifier).logout();
                   if (context.mounted) {
-                    Navigator.pushNamedAndRemoveUntil(context, '/splash', (_) => false);
+                    Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
                   }
                 }
               },
@@ -161,13 +161,13 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
-  final dynamic user;
+  final AppUser? user;
   final Translations t;
   const _ProfileCard({required this.user, required this.t});
 
   @override
   Widget build(BuildContext context) {
-    final name = user?.fullName ?? t.t('farmer');
+    final name = user?.name ?? t.t('farmer');
     final phone = user?.phone ?? '+234 800 000 0000';
     return Container(
       padding: const EdgeInsets.all(16),
@@ -197,18 +197,6 @@ class _ProfileCard extends StatelessWidget {
                     const Icon(Icons.phone_outlined, size: 14, color: Color(0xFF6B7280)),
                     const SizedBox(width: 4),
                     Text(phone, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    const Icon(Icons.eco_outlined, size: 14, color: Color(0xFF6B7280)),
-                    const SizedBox(width: 4),
-                    Text(user?.crop ?? 'Maize', style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF6B7280)),
-                    const SizedBox(width: 4),
-                    Text(user?.location ?? 'Zaria, Kaduna', style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
                   ],
                 ),
               ],
