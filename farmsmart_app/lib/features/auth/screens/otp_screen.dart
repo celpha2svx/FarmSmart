@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pinput/pinput.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/l10n/locale_provider.dart';
 import '../providers/auth_provider.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
-  const OtpScreen({super.key});
+  final String phone;
+  const OtpScreen({super.key, this.phone = ''});
 
   @override
   ConsumerState<OtpScreen> createState() => _OtpScreenState();
@@ -14,7 +16,7 @@ class OtpScreen extends ConsumerStatefulWidget {
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _pinController = TextEditingController();
-  String get _phone => ModalRoute.of(context)?.settings.arguments as String? ?? '';
+  String get _phone => widget.phone.isNotEmpty ? widget.phone : ModalRoute.of(context)?.settings.arguments as String? ?? '';
   int _secondsRemaining = 60;
   Timer? _timer;
   bool _canResend = false;
@@ -67,6 +69,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = ref.watch(translationsProvider);
     final defaultPinTheme = PinTheme(
       width: 48,
       height: 56,
@@ -108,9 +111,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   onPressed: () => Navigator.pop(context),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Verify Phone',
-                  style: TextStyle(
+                Text(
+                  t.t('verify'),
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -118,7 +121,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'We sent a 6-digit code to $_phone',
+                  '${t.t('otp_sent')} $_phone',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withOpacity(0.8),
@@ -147,7 +150,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                             _startTimer();
                           },
                           child: Text(
-                            'Resend Code',
+                            t.t('resend_otp'),
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.9),
                               fontSize: 15,
@@ -156,7 +159,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                           ),
                         )
                       : Text(
-                          'Resend code in $_secondsRemaining s',
+                          '${t.t('resend_in')} $_secondsRemaining s',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.7),
                             fontSize: 15,

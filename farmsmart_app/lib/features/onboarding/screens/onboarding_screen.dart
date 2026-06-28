@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/l10n/locale_provider.dart';
 import '../providers/onboarding_provider.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -20,21 +21,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String? _farmSize;
 
   static const List<Map<String, String>> _crops = [
-    {'name': 'Maize', 'emoji': '🌽'},
-    {'name': 'Rice', 'emoji': '🌾'},
-    {'name': 'Cassava', 'emoji': '🌱'},
-    {'name': 'Yam', 'emoji': '🍠'},
-    {'name': 'Tomato', 'emoji': '🍅'},
-    {'name': 'Pepper', 'emoji': '🌶'},
-    {'name': 'Groundnut', 'emoji': '🥜'},
-    {'name': 'Sorghum', 'emoji': '🌿'},
-    {'name': 'Soybean', 'emoji': '🫘'},
+    {'name': 'Maize', 'emoji': '\u{1F33D}'},
+    {'name': 'Rice', 'emoji': '\u{1F33E}'},
+    {'name': 'Cassava', 'emoji': '\u{1F331}'},
+    {'name': 'Yam', 'emoji': '\u{1F360}'},
+    {'name': 'Tomato', 'emoji': '\u{1F345}'},
+    {'name': 'Pepper', 'emoji': '\u{1F336}'},
+    {'name': 'Groundnut', 'emoji': '\u{1F95C}'},
+    {'name': 'Sorghum', 'emoji': '\u{1F33F}'},
+    {'name': 'Soybean', 'emoji': '\u{1FAD8}'},
   ];
 
   static const List<Map<String, String>> _sizes = [
-    {'key': 'small', 'label': 'Small (<1ha)', 'emoji': '🌱', 'desc': 'Backyard or family garden'},
-    {'key': 'medium', 'label': 'Medium (1-5ha)', 'emoji': '🌿', 'desc': 'Smallholder farm'},
-    {'key': 'large', 'label': 'Large (>5ha)', 'emoji': '🌳', 'desc': 'Commercial operation'},
+    {'key': 'small', 'label': 'Small (<1ha)', 'emoji': '\u{1F331}', 'desc': 'Backyard or family garden'},
+    {'key': 'medium', 'label': 'Medium (1-5ha)', 'emoji': '\u{1F33F}', 'desc': 'Smallholder farm'},
+    {'key': 'large', 'label': 'Large (>5ha)', 'emoji': '\u{1F333}', 'desc': 'Commercial operation'},
   ];
 
   bool get _canContinue {
@@ -72,6 +73,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = ref.watch(translationsProvider);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -130,14 +133,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 52),
                         ),
-                        child: const Text('Back'),
+                        child: Text(t.t('cancel')),
                       ),
                     ),
                   if (_currentStep > 0) const SizedBox(width: 12),
                   Expanded(
                     flex: _currentStep > 0 ? 2 : 1,
                     child: PrimaryButton(
-                      label: _currentStep < 2 ? 'Continue \u2192' : '\u{1F331} Start Farming',
+                      label: _currentStep < 2 ? t.t('next') : '\u{1F331} ${t.t('get_started')}',
                       onTap: _canContinue ? _onContinue : null,
                     ),
                   ),
@@ -163,6 +166,9 @@ class _StepCropsState extends State<_StepCrops> {
 
   @override
   Widget build(BuildContext context) {
+    final container = ProviderScope.containerOf(context);
+    final t = container.read(translationsProvider);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -170,12 +176,12 @@ class _StepCropsState extends State<_StepCrops> {
         children: [
           const SizedBox(height: 8),
           Text(
-            '\u{1F33E} What crops do you grow?',
+            '\u{1F33E} ${t.t('step_1_title')}',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 4),
           Text(
-            'Select all the crops on your farm',
+            t.t('step_1_sub'),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey600),
           ),
           const SizedBox(height: 20),
@@ -244,6 +250,9 @@ class _StepLocation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final container = ProviderScope.containerOf(context);
+    final t = container.read(translationsProvider);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -251,19 +260,19 @@ class _StepLocation extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
           Text(
-            '\u{1F4CD} Where is your farm located?',
+            '\u{1F4CD} ${t.t('step_2_title')}',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 4),
           Text(
-            'Enter your Local Government Area (LGA)',
+            t.t('step_2_sub'),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey600),
           ),
           const SizedBox(height: 20),
           TextField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'e.g. Zaria, Kaduna North, Ibadan...',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search),
             ),
             onChanged: (v) {
               final state = context.findAncestorStateOfType<_OnboardingScreenState>();
@@ -301,7 +310,10 @@ class _StepSize extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final container = ProviderScope.containerOf(context);
+    final t = container.read(translationsProvider);
     final selected = context.findAncestorStateOfType<_OnboardingScreenState>()?._farmSize;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -309,12 +321,12 @@ class _StepSize extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
           Text(
-            '\u{1F4CF} What is your farm size?',
+            '\u{1F4CF} ${t.t('step_3_title')}',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 4),
           Text(
-            'Select the closest option',
+            t.t('step_3_sub'),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey600),
           ),
           const SizedBox(height: 20),

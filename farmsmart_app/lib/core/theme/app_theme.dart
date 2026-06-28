@@ -46,6 +46,18 @@ class AppColors {
   static const Color grey50 = Color(0xFFFAFAFA);
   static const Color white = Color(0xFFFFFFFF);
   static const Color black = Color(0xFF000000);
+
+  // Additional semantic
+  static const Color red500 = Color(0xFFE53935);
+  static const Color amber500 = Color(0xFFFFB300);
+  static const Color blue = Color(0xFF42A5F5);
+
+  // Design system aliases
+  static const Color bg = Color(0xFFF8FAF9);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color border = Color(0xFFE5E7EB);
+  static const Color ink = Color(0xFF1D1B20);
+  static const Color inkMuted = Color(0xFF6B7280);
 }
 
 class AppRadius {
@@ -56,6 +68,7 @@ class AppRadius {
   static const double lg = 12.0;
   static const double xl = 16.0;
   static const double pill = 100.0;
+  static const double full = 100.0;
 }
 
 class AppShadows {

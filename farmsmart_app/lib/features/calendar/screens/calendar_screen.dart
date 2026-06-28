@@ -7,6 +7,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/app_chip.dart';
+import '../../../core/l10n/locale_provider.dart';
 import '../providers/tasks_provider.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -40,6 +41,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final tasksAsync = ref.watch(tasksProvider(_formatDate(_selectedDay)));
+    final t = ref.watch(translationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -73,7 +75,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Tasks for ${_selectedDay.day}/${_selectedDay.month}/${_selectedDay.year}',
+                '${t.t('tasks')} for ${_selectedDay.day}/${_selectedDay.month}/${_selectedDay.year}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.ink),
               ),
             ),
@@ -89,9 +91,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
             data: (tasks) {
               if (tasks.isEmpty) {
-                return const SliverFillRemaining(
+                return SliverFillRemaining(
                   hasScrollBody: true,
-                  child: EmptyState(message: 'No tasks for this day'),
+                  child: EmptyState(message: t.t('no_tasks')),
                 );
               }
               return SliverList(
@@ -144,9 +146,7 @@ class _TaskItem extends ConsumerWidget {
         child: Row(
           children: [
             GestureDetector(
-              onTap: () {
-                // Toggle completion – in production: PATCH /api/tasks/{id}
-              },
+              onTap: () {},
               child: Container(
                 width: 24, height: 24,
                 decoration: BoxDecoration(
@@ -203,25 +203,27 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final container = ProviderScope.containerOf(context);
+    final t = container.read(translationsProvider);
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 24, 16, MediaQuery.of(context).viewInsets.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Add New Task', style: Theme.of(context).textTheme.titleMedium),
+          Text(t.t('add_task'), style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
             decoration: InputDecoration(
-              hintText: 'Enter task name',
+              hintText: t.t('add_task'),
               border: OutlineInputBorder(borderRadius: AppRadius.sm),
             ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
-              // In production: POST /api/tasks
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -229,7 +231,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
             ),
-            child: const Text('Add Task', style: TextStyle(color: Colors.white)),
+            child: Text(t.t('add_task'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

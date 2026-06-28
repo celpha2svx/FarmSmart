@@ -5,23 +5,18 @@ import '../../../core/widgets/offline_banner.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/app_chip.dart';
+import '../../../core/l10n/locale_provider.dart';
 import '../providers/advisory_provider.dart';
 import '../providers/announcements_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final advisoryAsync = ref.watch(advisoryProvider);
     final announcementsAsync = ref.watch(announcementsProvider);
+    final t = ref.watch(translationsProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -35,19 +30,19 @@ class HomeScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const OfflineBanner(),
-                _HomeHeader(greeting: _greeting()),
+                _HomeHeader(),
                 const SizedBox(height: 8),
                 const _StatsRow(),
                 advisoryAsync.when(
                   data: (advisory) => _AdvisoryCard(advisory: advisory),
                   loading: () => const AdvisoryCardShimmer(),
                   error: (e, _) => ErrorCard(
-                    message: 'Could not load advisory',
+                    message: t.t('advisory_error'),
                     onRetry: () => ref.invalidate(advisoryProvider),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const _QuickActionsGrid(),
+                _QuickActionsGrid(),
                 announcementsAsync.when(
                   data: (announcements) => _RecentAlerts(announcements: announcements),
                   loading: () => const SizedBox.shrink(),
@@ -64,11 +59,11 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _HomeHeader extends StatelessWidget {
-  final String greeting;
-  const _HomeHeader({required this.greeting});
-
   @override
   Widget build(BuildContext context) {
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -281,7 +276,7 @@ class _AdvisoryCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     AppChip(
-                      label: 'Risk: ${advisory.riskLevel}',
+                      label: '${advisory.riskLevel}',
                       variant: switch (advisory.riskLevel.toLowerCase()) {
                         'high' => ChipVariant.red,
                         'medium' => ChipVariant.amber,
@@ -311,8 +306,6 @@ class _AdvisoryCard extends StatelessWidget {
 }
 
 class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid();
-
   @override
   Widget build(BuildContext context) {
     return Padding(

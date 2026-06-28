@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/l10n/locale_provider.dart';
 import '../providers/settings_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -11,10 +13,11 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final auth = ref.watch(authProvider);
+    final t = ref.watch(translationsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(t.t('settings')),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1D1B20),
         elevation: 0,
@@ -23,10 +26,10 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
-          _ProfileCard(user: auth),
+          _ProfileCard(user: auth, t: t),
           const SizedBox(height: 24),
           _SettingsSection(
-            label: 'Language',
+            label: t.t('language'),
             children: [
               _LangOption(label: 'English', flag: '🇬🇧', code: 'en', selected: settings.locale == 'en'),
               _LangOption(label: 'Hausa', flag: '🇳🇬', code: 'ha', selected: settings.locale == 'ha'),
@@ -37,33 +40,33 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           _SettingsSection(
-            label: 'Notifications',
+            label: t.t('notifications'),
             children: [
               _ToggleRow(
                 icon: Icons.article_outlined,
-                label: 'Daily Advisory',
-                sub: 'Get daily farming tips and advice',
+                label: t.t('daily_advisory'),
+                sub: t.t('daily_advisory_sub'),
                 value: settings.dailyAdvisory,
                 onChanged: (v) => ref.read(settingsProvider.notifier).setDailyAdvisory(v),
               ),
               _ToggleRow(
                 icon: Icons.bug_report_outlined,
-                label: 'Pest Alerts',
-                sub: 'Warnings about pests in your area',
+                label: t.t('pest_alerts'),
+                sub: t.t('pest_alerts_sub'),
                 value: settings.pestAlerts,
                 onChanged: (v) => ref.read(settingsProvider.notifier).setPestAlerts(v),
               ),
               _ToggleRow(
                 icon: Icons.trending_up_outlined,
-                label: 'Market Alerts',
-                sub: 'Price changes and market opportunities',
+                label: t.t('market_alerts'),
+                sub: t.t('market_alerts_sub'),
                 value: settings.marketAlerts,
                 onChanged: (v) => ref.read(settingsProvider.notifier).setMarketAlerts(v),
               ),
               _ToggleRow(
                 icon: Icons.wb_sunny_outlined,
-                label: 'Weather Alerts',
-                sub: 'Severe weather warnings and forecasts',
+                label: t.t('weather_alerts'),
+                sub: t.t('weather_alerts_sub'),
                 value: settings.weatherAlerts,
                 onChanged: (v) => ref.read(settingsProvider.notifier).setWeatherAlerts(v),
               ),
@@ -71,49 +74,49 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           _SettingsSection(
-            label: 'Data & Sync',
+            label: t.t('data_sync'),
             children: [
               _ToggleRow(
                 icon: Icons.sync_outlined,
-                label: 'Auto-sync',
-                sub: 'Automatically sync data when online',
+                label: t.t('auto_sync'),
+                sub: t.t('auto_sync_sub'),
                 value: settings.autoSync,
                 onChanged: (v) => ref.read(settingsProvider.notifier).setAutoSync(v),
               ),
               _ActionRow(
                 icon: Icons.sync,
-                label: 'Sync Now',
-                sub: 'Manually sync pending changes',
+                label: t.t('sync_now'),
+                sub: t.t('sync_now_sub'),
                 onTap: () => ref.read(settingsProvider.notifier).syncNow(),
               ),
               _ActionRow(
                 icon: Icons.delete_outline,
-                label: 'Clear Cache',
-                sub: 'Free up storage space (${settings.cacheSizeMb.toStringAsFixed(1)} MB)',
+                label: t.t('clear_cache'),
+                sub: '${t.t('clear_cache_sub')} (${settings.cacheSizeMb.toStringAsFixed(1)} MB)',
                 onTap: () => ref.read(settingsProvider.notifier).clearCache(),
               ),
             ],
           ),
           const SizedBox(height: 24),
           _SettingsSection(
-            label: 'About',
+            label: t.t('about'),
             children: [
               _ActionRow(
-                icon: Icons.info_outline,
-                label: 'Version',
-                sub: '1.0.0 (build 1)',
-                onTap: () => ref.read(settingsProvider.notifier).checkForUpdate(context),
+                icon: Icons.system_update_outlined,
+                label: t.t('check_updates'),
+                sub: '${t.t('version')} ${settings.appVersion}',
+                onTap: () => Navigator.pushNamed(context, '/ota'),
               ),
               _ActionRow(
                 icon: Icons.feedback_outlined,
-                label: 'Send Feedback',
-                sub: 'Help us improve FarmSmart',
-                onTap: () {},
+                label: t.t('send_feedback'),
+                sub: t.t('feedback_sub'),
+                onTap: () => Navigator.pushNamed(context, '/feedback'),
               ),
               _ActionRow(
                 icon: Icons.description_outlined,
-                label: 'Terms of Service',
-                sub: 'Read our terms and conditions',
+                label: t.t('terms'),
+                sub: t.t('terms_sub'),
                 onTap: () {},
               ),
             ],
@@ -126,11 +129,11 @@ class SettingsScreen extends ConsumerWidget {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Logout'),
-                    content: const Text('Are you sure you want to logout?'),
+                    title: Text(t.t('logout')),
+                    content: Text(t.t('logout_confirm')),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Logout')),
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.t('cancel'))),
+                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t.t('logout'))),
                     ],
                   ),
                 );
@@ -142,7 +145,7 @@ class SettingsScreen extends ConsumerWidget {
                 }
               },
               icon: const Icon(Icons.logout, color: Color(0xFFE11919)),
-              label: const Text('Logout', style: TextStyle(color: Color(0xFFE11919))),
+              label: Text(t.t('logout'), style: const TextStyle(color: Color(0xFFE11919))),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFFE11919)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -159,11 +162,12 @@ class SettingsScreen extends ConsumerWidget {
 
 class _ProfileCard extends StatelessWidget {
   final dynamic user;
-  const _ProfileCard({required this.user});
+  final Translations t;
+  const _ProfileCard({required this.user, required this.t});
 
   @override
   Widget build(BuildContext context) {
-    final name = user?.fullName ?? 'Farmer';
+    final name = user?.fullName ?? t.t('farmer');
     final phone = user?.phone ?? '+234 800 000 0000';
     return Container(
       padding: const EdgeInsets.all(16),

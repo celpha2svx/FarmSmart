@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/l10n/locale_provider.dart';
 import '../providers/auth_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -32,6 +33,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = ref.watch(translationsProvider);
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -61,9 +64,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     onPressed: () => Navigator.pop(context),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Create Account',
-                    style: TextStyle(
+                  Text(
+                    t.t('signup'),
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -83,7 +86,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     keyboardType: TextInputType.phone,
                     maxLength: 10,
                     decoration: InputDecoration(
-                      labelText: 'Phone Number',
+                      labelText: t.t('phone_number'),
                       prefixText: '+234 ',
                       prefixStyle: const TextStyle(
                         color: Colors.white,
@@ -119,7 +122,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     controller: _nameController,
                     textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
-                      labelText: 'Full Name',
+                      labelText: t.t('full_name'),
                       labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.15),
@@ -161,7 +164,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: const Text('Send Verification Code →'),
+                      child: Text('${t.t('verify')} \u2192'),
                     ),
                   ),
                   const SizedBox(height: 24),

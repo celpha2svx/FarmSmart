@@ -5,10 +5,12 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/offline_banner.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_state.dart';
+import '../../../core/l10n/locale_provider.dart';
 import '../providers/market_provider.dart';
 
 final _crops = ['Maize', 'Rice', 'Beans', 'Millet', 'Groundnut'];
-final _cropEmojis = {'Maize': '🌽', 'Rice': '🌾', 'Beans': '🫘', 'Millet': '🌿', 'Groundnut': '🥜'};
+final _cropEmojis = {'Maize': '\u{1F33D}', 'Rice': '\u{1F33E}', 'Beans': '\u{1FAD8}', 'Millet': '\u{1F33F}', 'Groundnut': '\u{1F95C}'};
+final _dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 class MarketScreen extends ConsumerStatefulWidget {
   const MarketScreen({super.key});
@@ -23,6 +25,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   @override
   Widget build(BuildContext context) {
     final marketAsync = ref.watch(marketPricesProvider(_selectedCrop));
+    final t = ref.watch(translationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -85,7 +88,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('Market Comparison',
+                  child: Text(t.t('market_comparison'),
                     style: Theme.of(context).textTheme.titleMedium),
                 ),
                 const SizedBox(height: 8),
@@ -134,7 +137,7 @@ class _PriceHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text('₦${data.currentPrice.toStringAsFixed(0)}/bag',
+          Text('\u{20A6}${data.currentPrice.toStringAsFixed(0)}/bag',
             style: Theme.of(context).textTheme.displayLarge?.copyWith(color: AppColors.green800)),
           Text('Last 7 days', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted)),
           const SizedBox(height: 16),
@@ -162,12 +165,11 @@ class _PriceHeroCard extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, _) {
-                        final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
                         final idx = value.toInt();
-                        if (idx < 0 || idx >= days.length) return const SizedBox.shrink();
+                        if (idx < 0 || idx >= _dayLabels.length) return const SizedBox.shrink();
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: Text(days[idx], style: const TextStyle(fontSize: 10, color: AppColors.inkMuted)),
+                          child: Text(_dayLabels[idx], style: const TextStyle(fontSize: 10, color: AppColors.inkMuted)),
                         );
                       },
                     ),
@@ -216,12 +218,12 @@ class _MarketRow extends StatelessWidget {
                 children: [
                   Text(entry.name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 2),
-                  Text('${entry.distanceKm} km away · ${entry.updatedAgo}',
+                  Text('${entry.distanceKm} km away \u00B7 ${entry.updatedAgo}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted)),
                 ],
               ),
             ),
-            Text('₦${entry.pricePerBag.toStringAsFixed(0)}',
+            Text('\u{20A6}${entry.pricePerBag.toStringAsFixed(0)}',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.green800)),
           ],
         ),

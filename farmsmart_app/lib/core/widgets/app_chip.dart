@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-enum ChipVariant { green, amber, red, earth }
+enum ChipVariant { green, amber, red, earth, blue }
 
 class AppChip extends StatelessWidget {
   final String label;
@@ -20,6 +20,7 @@ class AppChip extends StatelessWidget {
       ChipVariant.amber => (AppColors.warning.withValues(alpha: 0.15), AppColors.warning),
       ChipVariant.red => (AppColors.error.withValues(alpha: 0.15), AppColors.error),
       ChipVariant.earth => (AppColors.earth100, AppColors.earth800),
+      ChipVariant.blue => (const Color(0xFFE1F5FE), const Color(0xFF0288D1)),
     };
 
     return Container(

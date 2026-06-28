@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/l10n/locale_provider.dart';
 import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -51,6 +53,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = (ProviderScope.containerOf(context).read(translationsProvider));
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -84,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                     child: const Center(
                       child: Text(
-                        '🌱',
+                        '\u{1F331}',
                         style: TextStyle(fontSize: 48),
                       ),
                     ),
@@ -102,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen>
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Text(
-                      'Weather, market prices, and pest advice — all for Nigerian farmers.',
+                      'Weather, market prices, and pest advice \u2014 all for Nigerian farmers.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
@@ -129,7 +133,7 @@ class _SplashScreenState extends State<SplashScreen>
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        child: const Text('Get Started'),
+                        child: Text(t.t('get_started')),
                       ),
                     ),
                   ),
