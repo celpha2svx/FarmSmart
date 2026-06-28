@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../core/sync/sync_service.dart';
 
 class SettingsState {
   final String locale;
@@ -19,18 +20,27 @@ class SettingsState {
     this.marketAlerts = false,
     this.weatherAlerts = true,
     this.autoSync = true,
-    this.cacheSizeMb = 4.2,
-    this.appVersion = '2.0.0+3',
+    this.cacheSizeMb = 0,
+    this.appVersion = '',
   });
 }
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
-  SettingsNotifier() : super(const SettingsState());
+  final SyncService _syncService;
+  SettingsNotifier(this._syncService) : super(const SettingsState());
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     final info = await PackageInfo.fromPlatform();
     final version = '${info.version}+${info.buildNumber}';
+    final prefsKeys = prefs.getKeys();
+    double size = 0;
+    for (final key in prefsKeys) {
+      final val = prefs.get(key);
+      if (val is String) size += val.length;
+      if (val is int || val is double) size += 8;
+      if (val is bool) size += 1;
+    }
     state = SettingsState(
       locale: prefs.getString('locale') ?? 'en',
       dailyAdvisory: prefs.getBool('daily_advisory') ?? true,
@@ -38,6 +48,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       marketAlerts: prefs.getBool('market_alerts') ?? false,
       weatherAlerts: prefs.getBool('weather_alerts') ?? true,
       autoSync: prefs.getBool('auto_sync') ?? true,
+      cacheSizeMb: size / (1024 * 1024),
       appVersion: version,
     );
   }
@@ -92,14 +103,34 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   }
 
   Future<void> syncNow() async {
-    await Future.delayed(const Duration(seconds: 2));
+    state = _merged();
+    await _syncService.syncAll();
   }
 
   Future<void> clearCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final locale = prefs.getString('locale');
+    final token = prefs.getString('auth_token');
+    final phone = prefs.getString('phone');
+    final userName = prefs.getString('user_name');
+    final onboarding = prefs.getString('onboarding_complete');
+    final farmCrops = prefs.getString('farm_crops');
+    final farmLga = prefs.getString('farm_lga');
+    final farmSize = prefs.getString('farm_size');
+    await prefs.clear();
+    if (locale != null) await prefs.setString('locale', locale);
+    if (token != null) await prefs.setString('auth_token', token);
+    if (phone != null) await prefs.setString('phone', phone);
+    if (userName != null) await prefs.setString('user_name', userName);
+    if (onboarding != null) await prefs.setString('onboarding_complete', onboarding);
+    if (farmCrops != null) await prefs.setString('farm_crops', farmCrops);
+    if (farmLga != null) await prefs.setString('farm_lga', farmLga);
+    if (farmSize != null) await prefs.setString('farm_size', farmSize);
     state = _merged(cacheSizeMb: 0);
   }
 }
 
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
-  return SettingsNotifier();
+  final syncService = ref.watch(syncServiceProvider);
+  return SettingsNotifier(syncService);
 });

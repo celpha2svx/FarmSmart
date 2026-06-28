@@ -6,6 +6,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/app_chip.dart';
 import '../../../core/l10n/locale_provider.dart';
+import '../../../core/l10n/translations.dart';
 import '../providers/advisory_provider.dart';
 import '../providers/announcements_provider.dart';
 
@@ -30,11 +31,11 @@ class HomeScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const OfflineBanner(),
-                _HomeHeader(),
+                _HomeHeader(t: t),
                 const SizedBox(height: 8),
-                const _StatsRow(),
+                _StatsRow(t: t),
                 advisoryAsync.when(
-                  data: (advisory) => _AdvisoryCard(advisory: advisory),
+                  data: (advisory) => _AdvisoryCard(advisory: advisory, t: t),
                   loading: () => const AdvisoryCardShimmer(),
                   error: (e, _) => ErrorCard(
                     message: t.t('advisory_error'),
@@ -42,9 +43,9 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                _QuickActionsGrid(),
+                _QuickActionsGrid(t: t),
                 announcementsAsync.when(
-                  data: (announcements) => _RecentAlerts(announcements: announcements),
+                  data: (announcements) => _RecentAlerts(announcements: announcements, t: t),
                   loading: () => const SizedBox.shrink(),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
@@ -59,10 +60,13 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _HomeHeader extends StatelessWidget {
+  final Translations t;
+  const _HomeHeader({required this.t});
+
   @override
   Widget build(BuildContext context) {
     final hour = DateTime.now().hour;
-    final greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    final greeting = hour < 12 ? t.t('good_morning') : hour < 17 ? t.t('good_afternoon') : t.t('good_evening');
 
     return Container(
       width: double.infinity,
@@ -95,7 +99,7 @@ class _HomeHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Farmer',
+                    t.t('farmer'),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       color: AppColors.white,
                     ),
@@ -119,7 +123,8 @@ class _HomeHeader extends StatelessWidget {
 }
 
 class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+  final Translations t;
+  const _StatsRow({required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -127,13 +132,13 @@ class _StatsRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Expanded(child: _StatBubble(emoji: '\u{1F321}\u{FE0F}', label: 'Temp', value: '32\u{00B0}C', color: AppColors.warning)),
+          Expanded(child: _StatBubble(emoji: '\u{1F321}\u{FE0F}', label: t.t('temperature'), value: '--', color: AppColors.warning)),
           const SizedBox(width: 8),
-          Expanded(child: _StatBubble(emoji: '\u{1F4A7}', label: 'Humidity', value: '65%', color: AppColors.info)),
+          Expanded(child: _StatBubble(emoji: '\u{1F4A7}', label: t.t('humidity'), value: '--', color: AppColors.info)),
           const SizedBox(width: 8),
-          Expanded(child: _StatBubble(emoji: '\u{1F327}\u{FE0F}', label: 'Rain', value: '0.2mm', color: AppColors.blue)),
+          Expanded(child: _StatBubble(emoji: '\u{1F327}\u{FE0F}', label: t.t('rainfall'), value: '--', color: AppColors.blue)),
           const SizedBox(width: 8),
-          Expanded(child: _StatBubble(emoji: '\u{1F331}', label: 'Growth', value: 'Good', color: AppColors.green600)),
+          Expanded(child: _StatBubble(emoji: '\u{1F331}', label: t.t('soil_moisture'), value: '--', color: AppColors.green600)),
         ],
       ),
     );
@@ -188,7 +193,8 @@ class _StatBubble extends StatelessWidget {
 
 class _AdvisoryCard extends StatelessWidget {
   final AdvisoryData advisory;
-  const _AdvisoryCard({required this.advisory});
+  final Translations t;
+  const _AdvisoryCard({required this.advisory, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +233,7 @@ class _AdvisoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "TODAY'S ADVISORY",
+                      t.t('todays_advisory'),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppColors.green700,
@@ -285,12 +291,12 @@ class _AdvisoryCard extends StatelessWidget {
                     ),
                     TextButton(
                       onPressed: () {},
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Full advisory'),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_forward, size: 16),
+                          Text(t.t('full_advisory')),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward, size: 16),
                         ],
                       ),
                     ),
@@ -306,6 +312,9 @@ class _AdvisoryCard extends StatelessWidget {
 }
 
 class _QuickActionsGrid extends StatelessWidget {
+  final Translations t;
+  const _QuickActionsGrid({required this.t});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -316,7 +325,7 @@ class _QuickActionsGrid extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
-              'Quick Actions',
+              t.t('quick_actions'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
@@ -325,7 +334,7 @@ class _QuickActionsGrid extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   emoji: '\u{1F4F7}',
-                  label: 'Scan Crop',
+                  label: t.t('scan_crop'),
                   onTap: () {},
                 ),
               ),
@@ -333,7 +342,7 @@ class _QuickActionsGrid extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   emoji: '\u{1F4C5}',
-                  label: 'Calendar',
+                  label: t.t('calendar'),
                   onTap: () {},
                 ),
               ),
@@ -341,7 +350,7 @@ class _QuickActionsGrid extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   emoji: '\u{1F4B0}',
-                  label: 'Prices',
+                  label: t.t('market'),
                   onTap: () {},
                 ),
               ),
@@ -349,7 +358,7 @@ class _QuickActionsGrid extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   emoji: '\u{1F33F}',
-                  label: 'Advisory',
+                  label: t.t('advisory'),
                   onTap: () {},
                 ),
               ),
@@ -403,7 +412,8 @@ class _ActionButton extends StatelessWidget {
 
 class _RecentAlerts extends StatelessWidget {
   final List<Announcement> announcements;
-  const _RecentAlerts({required this.announcements});
+  final Translations t;
+  const _RecentAlerts({required this.announcements, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -417,7 +427,7 @@ class _RecentAlerts extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
-              'Recent Alerts',
+              t.t('recent_alerts'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
