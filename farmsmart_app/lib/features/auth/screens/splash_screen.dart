@@ -139,7 +139,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                    onPressed: () => Navigator.pushNamed(context, '/signup'),
                     child: Text(
                       'Already have account? Sign in',
                       style: TextStyle(

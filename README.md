@@ -1,153 +1,145 @@
-# FarmSmart 🌱
-**Precision Agriculture Advisory Platform for Smallholder Farmers in Nigeria**
+# 🌱 FarmSmart
 
-> *Farm smart, no be guesswork.* 🇳🇬
+**Precision agriculture for Nigerian farmers.** Personalized weather, soil, and pest advisories delivered to your phone. Works offline. 4 languages.
 
-FarmSmart delivers satellite-driven soil moisture forecasts, hyper-local weather advice, and pest early warnings directly to farmers via WhatsApp and SMS — at zero operating cost.
-
----
-
-## How It Works
-
-```
-NASA SMAP / Open-Meteo  →  Processing Engine  →  WhatsApp / SMS
-(Satellite + Weather)       (ET₀ · Pest DD)       (Plain language)
-```
-
-1. **Every 6 hours** — satellite soil moisture and weather forecast data is fetched for all registered farm locations
-2. **Processing** — ET₀ (Penman-Monteith) and pest degree-day models run against fresh data
-3. **6 AM daily** — each subscribed farmer receives a personalised report in plain English
+[![Platform](https://img.shields.io/badge/Android-8%2B-4CAF50?logo=android)](https://github.com/celpha2svx/FarmSmart/releases/latest)
+[![Flutter](https://img.shields.io/badge/Flutter-3.29-02569B?logo=flutter)](https://flutter.dev)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://python.org)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
 
-## Quick Start
+## Features
 
-### 1. Clone and install
+| Feature | Description |
+|---------|-------------|
+| 📡 **Satellite Insights** | Daily soil moisture, vegetation health, temperature, and drought alerts from Open-Meteo & FAO WaPOR |
+| 📷 **AI Pest Detection** | Snap a photo → HuggingFace AI identifies 17 pests/diseases with exact treatment steps |
+| 📅 **Smart Calendar** | Personalized planting, fertilizing, irrigating, spraying, and harvesting schedule per crop |
+| 💰 **Market Prices** | Live AFEX Exchange prices across Nigerian markets with bar chart trends |
+| 🌍 **4 Languages** | English, Hausa, Yoruba, Igbo — every screen and advisory in your language |
+| 📴 **Offline-First** | Local Drift database queues actions, auto-syncs when reconnected; advisories cached 14 days |
+| 🔄 **OTA Updates** | Check for updates in-app, download & install APK — no Google Play needed |
+| 💬 **Feedback** | Send feedback from the app → Cloudflare Worker → GitHub Issue |
+
+## Screenshots
+
+| | | |
+|--|--|--|
+| ![Home](docs/screenshots/home.png) | ![Calendar](docs/screenshots/calendar.png) | ![Market](docs/screenshots/market.png) |
+| ![Scanner](docs/screenshots/scanner.png) | ![Settings](docs/screenshots/settings.png) | ![OTP](docs/screenshots/otp.png) |
+
+## Tech Stack
+
+**Frontend** — Flutter 3.29, Riverpod, Google Fonts, Drift, Dio, fl_chart, table_calendar, shimmer, image_picker, pinput, flutter_secure_storage
+
+**Backend** — Python 3.12, FastAPI, Uvicorn, APScheduler, httpx, BeautifulSoup4, Pillow, Render
+
+**AI** — HuggingFace Inference API (plant disease classification)
+
+**APIs** — AFEX Exchange (market prices), Open-Meteo (weather), FAO WaPOR (NDVI)
+
+**CI/CD** — GitHub Actions (Flutter APK build + GitHub Release), Render auto-deploy
+
+**Infrastructure** — Cloudflare Worker (feedback → GitHub Issues)
+
+## Installation
+
+1. Download the latest APK from the [Releases page](https://github.com/celpha2svx/FarmSmart/releases/latest)
+2. Enable "Install from unknown sources" on your Android device
+3. Open the APK and install
+
+### Download options
+
+| Variant | Size | Best for |
+|---------|------|----------|
+| Universal | 93 MB | All devices |
+| arm64-v8a | 34 MB | Most modern phones (2015+) |
+| armeabi-v7a | 29 MB | Older phones |
+| x86_64 | 37 MB | Emulators / tablets |
+
+Minimum Android version: **8.0 (API 26)**
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | API health check |
+| `/register_farm` | POST | Register a farm |
+| `/advisory` | POST | Generate personalized advisory |
+| `/market_prices` | GET | Current market prices |
+| `/tasks` | POST | Generate farm tasks |
+| `/sync_tasks` | POST | Sync completed tasks |
+| `/pest_detect` | POST | Analyze pest image |
+| `/satellite` | GET | Satellite weather data |
+| `/send_otp` | POST | Send OTP for auth |
+| `/verify_otp` | POST | Verify OTP |
+| `/check_session` | POST | Check user session |
+| `/feedback` | POST | Submit feedback |
+
+## Development
+
+### Prerequisites
+
+- Flutter 3.29+
+- Python 3.12+
+- Android SDK 36
+
+### Flutter app
+
 ```bash
-git clone https://github.com/your-org/farmsmart.git
-cd farmsmart
+cd farmsmart_app
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter run
+```
+
+### Backend
+
+```bash
 pip install -r requirements.txt
+cp .env.example .env  # add your keys
+uvicorn app_api:app --reload --port 8000
 ```
 
-### 2. Configure environment
-```bash
-cp .env.example .env
-# Edit .env with your WhatsApp token, phone number ID, and DB URL
+### Environment variables
+
+```
+DATABASE_URL=postgresql://...
+TELEGRAM_TOKEN=...
+HUGGINGFACE_TOKEN=hf_...
+HUGGINGFACE_MODEL=pierreguillou/nlp-v2.0-classifier-plant-disease
+AFEX_API_BASE=https://api.afexexchange.com/...
 ```
 
-### 3. Run locally
-```bash
-python main.py
-# Server starts at http://localhost:8000
+## Architecture
+
+```
+lib/
+├── core/
+│   ├── database/       # Drift local DB (offline queue)
+│   ├── l10n/           # i18n (4 languages, 80+ strings each)
+│   ├── network/        # Dio API client
+│   ├── providers/      # Shared providers
+│   ├── sync/           # Offline sync service
+│   ├── theme/          # Design tokens (colors, radius, shadows, spacing)
+│   └── widgets/        # Shared widgets (shimmer, empty, error, offline, chip, button)
+├── features/
+│   ├── auth/           # Splash, signup, OTP
+│   ├── calendar/       # Task calendar
+│   ├── home/           # Advisory feed
+│   ├── market/         # Price charts
+│   ├── onboarding/     # First-run flow
+│   ├── scanner/        # Pest detection camera
+│   └── settings/       # OTA updates, feedback, language
+├── navigation/         # Bottom nav shell
+└── main.dart           # App entry point
 ```
 
-### 4. Run tests
-```bash
-pytest tests/ -v
-```
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-## Project Structure
-
-```
-farmsmart/
-├── main.py                      # FastAPI app + WhatsApp webhook
-├── requirements.txt
-├── .env.example
-│
-├── data_pipeline/
-│   ├── fetchers/
-│   │   ├── soil_moisture.py     # NASA SMAP / Open-Meteo soil
-│   │   ├── weather.py           # Open-Meteo 7-day forecast
-│   │   └── elevation.py         # SRTM elevation (lapse-rate correction)
-│   ├── models/
-│   │   ├── penman_monteith.py   # FAO-56 ET₀ calculation
-│   │   ├── soil_trend.py        # 3-day soil moisture projection
-│   │   └── pest_models.py       # Degree-day pest accumulation
-│   └── scheduler.py             # APScheduler cron jobs
-│
-├── translation/
-│   ├── soil_to_message.py       # Soil data → farmer message
-│   ├── weather_to_message.py    # Weather data → farmer message
-│   └── pest_to_message.py       # Pest risk → alert + signs + scout guide
-│
-├── bot/
-│   ├── whatsapp_handler.py      # Meta WhatsApp Cloud API
-│   ├── sms_handler.py           # Africa's Talking SMS fallback
-│   ├── registration.py          # 3-question onboarding flow
-│   └── commands.py              # SOIL / WEATHER / PEST / etc.
-│
-├── database/
-│   ├── models.py                # SQLAlchemy ORM (farmers, alerts, degree_days)
-│   └── operations.py            # CRUD operations
-│
-├── tests/                       # pytest test suite
-└── utils/
-    ├── constants.py             # Crop thresholds, pest config
-    ├── geocoding.py             # Nigerian LGA → lat/lon
-    └── helpers.py               # Shared utilities
-```
-
----
-
-## WhatsApp Commands
-
-| Command   | Response |
-|-----------|----------|
-| `SOIL`    | Soil moisture status + 3-day trend + irrigation advice |
-| `WEATHER` | 3-day local forecast + spray/harvest/irrigate tips |
-| `PEST`    | Pest risk level for registered crop |
-| `DAILY`   | Subscribe to 6 AM daily updates |
-| `STOP`    | Pause all alerts |
-| `START`   | Resume alerts |
-| `SCOUT`   | Step-by-step farm scouting guide |
-| `SIGNS`   | Visual pest damage signs to look for |
-| `HELP`    | Full command list |
-
----
-
-## Data Sources
-
-| Source | Data | Cost |
-|--------|------|------|
-| [Open-Meteo](https://open-meteo.com) | 7-day weather forecast | Free, no key |
-| [NASA SMAP](https://nsidc.org/data/smap) | Soil moisture 0–10cm | Free (EarthData account) |
-| [SRTM](https://www2.jpl.nasa.gov/srtm/) | Elevation | Free static dataset |
-
----
-
-## Deployment (Railway)
-
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Deploy
-railway login
-railway up --service farmsmart
-```
-
-Set these environment variables in Railway:
-- `WHATSAPP_TOKEN`
-- `PHONE_NUMBER_ID`
-- `VERIFY_TOKEN`
-- `DATABASE_URL`
-
----
-
-## Cost
-
-| Service | Free Tier | Monthly Cost |
-|---------|-----------|-------------|
-| Backend (Railway/Render) | 500hr/month | ₦0 |
-| Database (Supabase) | 500MB | ₦0 |
-| WhatsApp (Meta Cloud API) | 1,000 conversations | ₦0 |
-| Weather (Open-Meteo) | Unlimited | ₦0 |
-| Soil (NASA EarthData) | Unlimited | ₦0 |
-| **SMS fallback** | Pay per use | ~₦4–₦8/SMS |
-| **Total** | | **₦0/month** |
-
----
-
-*FarmSmart — Precision Agriculture for Nigeria · June 2026*
+*Powered by FAO WaPOR · Open-Meteo · AFEX Exchange · HuggingFace · Made in Nigeria 🇳🇬*

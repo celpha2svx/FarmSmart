@@ -181,7 +181,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/login'),
+                      onPressed: () => Navigator.pop(context),
                       child: Text(
                         'Already have an account? Sign in',
                         style: TextStyle(

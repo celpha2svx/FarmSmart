@@ -6,383 +6,218 @@
     <title>FarmSmart — Precision Agriculture for Nigerian Farmers</title>
     <meta name="description" content="FarmSmart delivers personalized weather, soil, and pest advisories to Nigerian farmers via mobile app. Hausa, Yoruba, Igbo & English.">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
-
-    <!-- Open Graph -->
     <meta property="og:title" content="FarmSmart">
-    <meta property="og:description" content="Precision agriculture for Nigerian farmers. Works offline. In Hausa, Yoruba, Igbo & English.">
+    <meta property="og:description" content="Precision agriculture for Nigerian farmers. Works offline. AI pest detection. Market prices. In Hausa, Yoruba, Igbo & English.">
     <meta property="og:type" content="website">
 
     <style>
-        :root {
-            --primary: #2E7D32;
-            --primary-light: #4CAF50;
-            --primary-dark: #1B5E20;
-            --accent: #F57C00;
-            --text: #212121;
-            --text-light: #757575;
-            --bg: #FAFAFA;
-            --white: #FFFFFF;
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--green-900:#1B5E20;--green-800:#2E7D32;--green-700:#388E3C;--green-600:#43A047;--green-500:#4CAF50;--green-400:#66BB6A;--green-100:#C8E6C9;--green-50:#E8F5E9;--earth-800:#4E342E;--earth-100:#D7CCC8;--warning:#FFA000;--error:#D32F2F;--info:#1976D2;--text:#212121;--muted:#6B7280;--bg:#F8FAF9;--white:#FFFFFF}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Noto Sans,sans-serif;color:var(--text);background:var(--bg);line-height:1.6}
+        nav{position:fixed;top:0;width:100%;background:rgba(255,255,255,0.95);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:100;border-bottom:1px solid #E5E7EB}
+        nav .inner{max-width:1100px;margin:0 auto;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
+        nav .logo{font-size:22px;font-weight:700;color:var(--green-800);text-decoration:none;display:flex;align-items:center;gap:8px}
+        nav .links{display:flex;gap:28px;align-items:center}
+        nav .links a{text-decoration:none;color:var(--text);font-weight:500;font-size:14px;transition:color .2s}
+        nav .links a:hover{color:var(--green-700)}
+        .nav-download{background:var(--green-800);color:var(--white)!important;padding:8px 20px;border-radius:8px;font-weight:600!important}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        .hero{padding:120px 24px 60px;background:linear-gradient(135deg,var(--green-900),var(--green-700) 50%,var(--green-500));color:var(--white);text-align:center}
+        .hero h1{font-size:44px;font-weight:800;margin-bottom:12px;line-height:1.15}
+        .hero p{font-size:18px;opacity:.9;max-width:580px;margin:0 auto 32px}
+        .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+        .hero-btns a{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;transition:transform .2s}
+        .hero-btns a:hover{transform:translateY(-2px)}
+        .btn-primary{background:var(--white);color:var(--green-800)!important}
+        .btn-secondary{background:rgba(255,255,255,.12);color:var(--white)!important;border:2px solid rgba(255,255,255,.25)}
+        .hero-stats{display:flex;gap:36px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+        .hero-stat{text-align:center}
+        .hero-stat .num{font-size:30px;font-weight:800}
+        .hero-stat .lbl{font-size:13px;opacity:.8;margin-top:2px}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: var(--text);
-            background: var(--bg);
-            line-height: 1.6;
-        }
+        #version-badge{display:inline-block;margin-top:20px;padding:6px 16px;border-radius:20px;background:rgba(255,255,255,.12);font-size:13px;font-weight:500}
 
-        /* ── Navigation ── */
-        nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            z-index: 100;
-            border-bottom: 1px solid #eee;
-        }
+        section{max-width:1100px;margin:0 auto;padding:72px 24px}
+        section h2{font-size:32px;font-weight:700;text-align:center;margin-bottom:40px}
 
-        nav .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+        .f-card{background:var(--white);border-radius:14px;padding:28px;box-shadow:0 1px 8px rgba(0,0,0,.05);border:1px solid #E5E7EB;transition:transform .2s,box-shadow .2s}
+        .f-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
+        .f-card .ico{font-size:36px;margin-bottom:12px}
+        .f-card h3{font-size:18px;margin-bottom:6px}
+        .f-card p{color:var(--muted);font-size:14px}
 
-        nav .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .tech-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+        .tech-item{background:var(--white);border-radius:10px;padding:20px;text-align:center;border:1px solid #E5E7EB}
+        .tech-item .ico{font-size:28px;margin-bottom:8px}
+        .tech-item h4{font-size:14px;font-weight:600;margin-bottom:4px}
+        .tech-item p{font-size:12px;color:var(--muted)}
 
-        nav .nav-links { display: flex; gap: 32px; align-items: center; }
-        nav .nav-links a {
-            text-decoration: none;
-            color: var(--text);
-            font-weight: 500;
-            font-size: 15px;
-            transition: color 0.2s;
-        }
-        nav .nav-links a:hover { color: var(--primary); }
+        .lang-card{background:var(--white);border-radius:14px;padding:36px;text-align:center;border:1px solid #E5E7EB}
+        .lang-card p{font-size:16px;color:var(--muted);margin-bottom:20px}
+        .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+        .chip{padding:10px 22px;background:var(--green-50);border-radius:20px;font-size:14px;font-weight:500;color:var(--green-800)}
 
-        .btn-download {
-            background: var(--primary);
-            color: white !important;
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-weight: 600 !important;
-            transition: background 0.2s !important;
-        }
-        .btn-download:hover { background: var(--primary-dark) !important; }
+        .download-box{background:linear-gradient(135deg,var(--green-900),var(--green-700));border-radius:20px;padding:52px 40px;text-align:center;color:var(--white)}
+        .download-box h2{color:var(--white)}
+        .download-box p{font-size:16px;opacity:.9;margin-bottom:28px}
+        .dl-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+        .dl-btn{display:inline-flex;align-items:center;gap:10px;padding:16px 32px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;transition:transform .2s}
+        .dl-btn:hover{transform:translateY(-2px)}
+        .dl-btn.android{background:var(--white);color:var(--green-800)}
+        .dl-btn.variant{background:rgba(255,255,255,.1);color:var(--white);border:1px solid rgba(255,255,255,.2)}
+        .dl-note{margin-top:20px;font-size:13px;opacity:.7}
 
-        /* ── Hero ── */
-        .hero {
-            padding: 140px 24px 80px;
-            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%);
-            color: white;
-            text-align: center;
-        }
+        .arch-select{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+        .arch-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:rgba(255,255,255,.08);color:var(--white);text-decoration:none;font-size:12px;transition:background .2s}
+        .arch-btn:hover{background:rgba(255,255,255,.18)}
 
-        .hero h1 {
-            font-size: 48px;
-            font-weight: 800;
-            margin-bottom: 16px;
-            line-height: 1.2;
-        }
+        footer{text-align:center;padding:36px 24px;color:var(--muted);font-size:13px;border-top:1px solid #E5E7EB}
+        footer a{color:var(--green-700);text-decoration:none}
 
-        .hero p {
-            font-size: 20px;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto 40px;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .hero-buttons a {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 32px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: transform 0.2s;
-        }
-        .hero-buttons a:hover { transform: translateY(-2px); }
-
-        .btn-primary {
-            background: white;
-            color: var(--primary) !important;
-        }
-
-        .btn-secondary {
-            background: rgba(255,255,255,0.15);
-            color: white !important;
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        .hero-stats {
-            display: flex;
-            gap: 48px;
-            justify-content: center;
-            margin-top: 48px;
-            flex-wrap: wrap;
-        }
-
-        .hero-stat { text-align: center; }
-        .hero-stat .number { font-size: 32px; font-weight: 800; }
-        .hero-stat .label { font-size: 14px; opacity: 0.8; margin-top: 4px; }
-
-        /* ── Sections ── */
-        section {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 80px 24px;
-        }
-
-        section h2 {
-            font-size: 36px;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 48px;
-        }
-
-        /* ── Features Grid ── */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-        }
-
-        .feature-card {
-            background: white;
-            border-radius: 16px;
-            padding: 32px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-        }
-
-        .feature-card .icon { font-size: 40px; margin-bottom: 16px; }
-        .feature-card h3 { font-size: 20px; margin-bottom: 8px; }
-        .feature-card p { color: var(--text-light); font-size: 15px; }
-
-        /* ── Languages ── */
-        .languages {
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-        }
-
-        .language-chips {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 24px;
-        }
-
-        .language-chip {
-            padding: 12px 24px;
-            background: var(--bg);
-            border-radius: 24px;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        /* ── Download ── */
-        .download-section {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            border-radius: 24px;
-            padding: 60px 40px;
-            text-align: center;
-            color: white;
-        }
-
-        .download-section h2 { color: white; }
-        .download-section p { font-size: 18px; opacity: 0.9; margin-bottom: 32px; }
-
-        .download-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            padding: 18px 36px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            transition: transform 0.2s;
-        }
-        .download-btn:hover { transform: translateY(-2px); }
-
-        .download-btn.android {
-            background: white;
-            color: var(--primary);
-        }
-
-        .download-btn.ios {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        /* ── Footer ── */
-        footer {
-            text-align: center;
-            padding: 40px 24px;
-            color: var(--text-light);
-            font-size: 14px;
-            border-top: 1px solid #eee;
-        }
-
-        footer a { color: var(--primary); text-decoration: none; }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 32px; }
-            .hero p { font-size: 16px; }
-            nav .nav-links a:not(.btn-download) { display: none; }
-            section { padding: 48px 16px; }
-            section h2 { font-size: 28px; }
-            .hero-stats { gap: 24px; }
+        @media(max-width:768px){
+            .hero h1{font-size:28px}
+            .hero p{font-size:15px}
+            nav .links a:not(.nav-download){display:none}
+            section{padding:40px 16px}
+            section h2{font-size:24px}
+            .hero-stats{gap:18px}
+            .download-box{padding:36px 20px}
+            .dl-btn{padding:14px 24px;font-size:14px}
         }
     </style>
 </head>
 <body>
     <nav>
-        <div class="container">
+        <div class="inner">
             <a href="/" class="logo">🌱 FarmSmart</a>
-            <div class="nav-links">
+            <div class="links">
                 <a href="#features">Features</a>
+                <a href="#tech">Tech</a>
                 <a href="#languages">Languages</a>
-                <a href="#download" class="btn-download">Download</a>
+                <a href="#download" class="nav-download">Download</a>
             </div>
         </div>
     </nav>
 
-    <!-- Hero -->
     <section class="hero">
         <h1>Your farm, smarter.</h1>
-        <p>Personalized weather, soil, and pest advice for Nigerian farmers — in Hausa, Yoruba, Igbo &amp; English. Works offline.</p>
-        <div class="hero-buttons">
-            <a href="#download" class="btn-primary">📲 Download the App</a>
-            <a href="https://farmsmart-dlou.onrender.com/health" class="btn-secondary">🔍 Check API Status</a>
+        <p>Personalized weather, soil, and pest advice for Nigerian farmers — in Hausa, Yoruba, Igbo &amp; English. Satellite-powered. Works offline.</p>
+        <div class="hero-btns">
+            <a href="#download" class="btn-primary">📲 Download APK</a>
+            <a href="https://farmsmart-dlou.onrender.com/health" class="btn-secondary" target="_blank">🔍 API Status</a>
         </div>
+        <span id="version-badge">v3.0.0-beta · 2,500+ lines of Dart · 12 API endpoints</span>
         <div class="hero-stats">
-            <div class="hero-stat"><div class="number">20</div><div class="label">Crops Supported</div></div>
-            <div class="hero-stat"><div class="number">17</div><div class="label">Pests Monitored</div></div>
-            <div class="hero-stat"><div class="number">120+</div><div class="label">LGAs Covered</div></div>
-            <div class="hero-stat"><div class="number">4</div><div class="label">Languages</div></div>
+            <div class="hero-stat"><div class="num">20</div><div class="lbl">Crops</div></div>
+            <div class="hero-stat"><div class="num">17</div><div class="lbl">Pests</div></div>
+            <div class="hero-stat"><div class="num">120+</div><div class="lbl">LGAs</div></div>
+            <div class="hero-stat"><div class="num">4</div><div class="lbl">Languages</div></div>
+            <div class="hero-stat"><div class="num">7</div><div class="lbl">Endpoints</div></div>
         </div>
     </section>
 
-    <!-- Features -->
     <section id="features">
         <h2>What FarmSmart gives you</h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="icon">📡</div>
+        <div class="features">
+            <div class="f-card">
+                <div class="ico">📡</div>
                 <h3>Satellite-Powered Insights</h3>
-                <p>FAO satellite data gives you daily soil moisture, vegetation health, and drought alerts — delivered to your phone.</p>
+                <p>FAO &amp; Open-Meteo satellite data gives you daily soil moisture, vegetation health, temperature, and drought alerts — delivered to your phone.</p>
             </div>
-            <div class="feature-card">
-                <div class="icon">📷</div>
+            <div class="f-card">
+                <div class="ico">📷</div>
                 <h3>AI Pest Detection</h3>
-                <p>Take a photo of your crop. Our AI identifies pests &amp; diseases and tells you exactly what to do — even offline.</p>
+                <p>Take a photo of an affected leaf. Our backend calls HuggingFace's state-of-the-art plant disease model — identifies 17 pests &amp; diseases with exact treatment steps.</p>
             </div>
-            <div class="feature-card">
-                <div class="icon">📅</div>
-                <h3>Farming Calendar</h3>
-                <p>Never miss a task. Your personalized calendar tells you when to plant, fertilize, irrigate, spray, and harvest.</p>
+            <div class="f-card">
+                <div class="ico">📅</div>
+                <h3>Smart Farming Calendar</h3>
+                <p>Personalized calendar tells you when to plant, fertilize, irrigate, spray, and harvest for your specific crops and location in Nigeria.</p>
             </div>
-            <div class="feature-card">
-                <div class="icon">💰</div>
-                <h3>Market Prices</h3>
-                <p>See current prices for your crop across Nigerian markets. Know where to sell for the best price.</p>
+            <div class="f-card">
+                <div class="ico">💰</div>
+                <h3>Live Market Prices</h3>
+                <p>Real prices from AFEX Exchange API across Nigerian markets. Bar chart trends. Know exactly where to sell for the best price today.</p>
             </div>
-            <div class="feature-card">
-                <div class="icon">🌍</div>
+            <div class="f-card">
+                <div class="ico">🌍</div>
                 <h3>4 Languages</h3>
-                <p>English, Hausa, Yoruba, and Igbo. Every feature in your language.</p>
+                <p>English, Hausa, Yoruba, and Igbo. Every screen, every alert, every advisory — switch instantly in Settings.</p>
             </div>
-            <div class="feature-card">
-                <div class="icon">📴</div>
-                <h3>Works Offline</h3>
-                <p>No internet? No problem. Advisories are cached for 14 days. Syncs when you're connected.</p>
+            <div class="f-card">
+                <div class="ico">🔄</div>
+                <h3>OTA Updates</h3>
+                <p>Check for updates from within the app. Download and install the latest APK directly — no Google Play needed.</p>
+            </div>
+            <div class="f-card">
+                <div class="ico">📴</div>
+                <h3>Offline-First</h3>
+                <p>Uses local Drift database. Queue actions when offline, auto-sync when reconnected. Advisories cached for 14 days.</p>
+            </div>
+            <div class="f-card">
+                <div class="ico">💬</div>
+                <h3>Feedback → GitHub Issues</h3>
+                <p>Send feedback from the app. It posts to a Cloudflare Worker that creates a GitHub Issue. Every voice matters.</p>
             </div>
         </div>
     </section>
 
-    <!-- Languages -->
+    <section id="tech">
+        <h2>Built for scale</h2>
+        <div class="tech-grid">
+            <div class="tech-item"><div class="ico">📱</div><h4>Flutter 3.29</h4><p>Android app with Riverpod state management</p></div>
+            <div class="tech-item"><div class="ico">🐍</div><h4>Python + FastAPI</h4><p>Backend on Render with 9 API endpoints</p></div>
+            <div class="tech-item"><div class="ico">🤖</div><h4>HuggingFace AI</h4><p>Plant disease classification via Inference API</p></div>
+            <div class="tech-item"><div class="ico">📊</div><h4>AFEX Exchange</h4><p>Free real-time market price API</p></div>
+            <div class="tech-item"><div class="ico">🛰️</div><h4>Open-Meteo + WaPOR</h4><p>Free satellite weather &amp; NDVI data</p></div>
+            <div class="tech-item"><div class="ico">☁️</div><h4>Cloudflare Worker</h4><p>Serverless feedback → GitHub Issues pipeline</p></div>
+        </div>
+    </section>
+
     <section id="languages">
         <h2>Available in your language</h2>
-        <div class="languages">
-            <p style="font-size:18px; color:var(--text-light);">
-                Every screen, every advisory, every alert — in the language you're most comfortable with.
-            </p>
-            <div class="language-chips">
-                <span class="language-chip">🇳🇬 English</span>
-                <span class="language-chip">🇳🇬 Hausa</span>
-                <span class="language-chip">🇳🇬 Yoruba</span>
-                <span class="language-chip">🇳🇬 Igbo</span>
+        <div class="lang-card">
+            <p>Every screen, every advisory, every alert — in the language you're most comfortable with.</p>
+            <div class="chips">
+                <span class="chip">🇳🇬 English</span>
+                <span class="chip">🇳🇬 Hausa</span>
+                <span class="chip">🇳🇬 Yoruba</span>
+                <span class="chip">🇳🇬 Igbo</span>
             </div>
+            <p style="margin-top:20px;font-size:14px;color:var(--muted);">80+ translated strings per language — weather terms, crop names, farming advice, and UI labels.</p>
         </div>
     </section>
 
-    <!-- Download -->
     <section id="download">
-        <div class="download-section">
+        <div class="download-box">
             <h2>Get FarmSmart</h2>
-            <p>Free. No account needed. Works on any Android phone.</p>
-            <div class="download-buttons">
-                <a href="https://github.com/celpha2svx/FarmSmart/releases/latest/download/app-release.apk" class="download-btn android">
-                    📲 Download APK
-                </a>
-                <a href="#" class="download-btn ios">
-                    🍎 iOS <span style="font-weight:400; opacity:0.8;">(Coming soon)</span>
-                </a>
+            <p>Free. No account needed. Works on Android 8+ (26 API).</p>
+            <div class="dl-btns">
+                <a href="https://github.com/celpha2svx/FarmSmart/releases/latest/download/app-release.apk" class="dl-btn android">📲 Download APK (93 MB)</a>
+                <a href="https://github.com/celpha2svx/FarmSmart/releases" class="dl-btn variant">📋 All Releases</a>
             </div>
-            <p style="margin-top:24px; font-size:14px; opacity:0.7;">
-                Version 1.0.0 · Sideload APK (Google Play coming soon)
+            <p class="dl-note">Universal APK runs on all devices. Smaller per-architecture builds also available.</p>
+            <div class="arch-select">
+                <a href="https://github.com/celpha2svx/FarmSmart/releases/latest/download/app-arm64-v8a-release.apk" class="arch-btn">📱 arm64-v8a (34 MB)</a>
+                <a href="https://github.com/celpha2svx/FarmSmart/releases/latest/download/app-armeabi-v7a-release.apk" class="arch-btn">📱 armeabi-v7a (29 MB)</a>
+                <a href="https://github.com/celpha2svx/FarmSmart/releases/latest/download/app-x86_64-release.apk" class="arch-btn">📱 x86_64 (37 MB)</a>
+            </div>
+            <p style="margin-top:16px;font-size:13px;opacity:.7;">
+                Version 3.0.0-beta · Built with Flutter 3.29 · Min SDK 26
             </p>
         </div>
     </section>
 
     <footer>
         <p>🌱 FarmSmart — Precision Agriculture for Nigerian Farmers</p>
-        <p style="margin-top:8px;">
+        <p style="margin-top:6px;">
             <a href="https://github.com/celpha2svx/FarmSmart">GitHub</a> ·
+            <a href="https://github.com/celpha2svx/FarmSmart/issues">Report Issue</a> ·
             <a href="https://farmsmart-dlou.onrender.com/health">API Status</a>
         </p>
-        <p style="margin-top:4px; font-size:12px;">
-            Powered by FAO WaPOR satellite data · Made in Nigeria
+        <p style="margin-top:4px;font-size:12px;opacity:.7;">
+            Powered by FAO WaPOR · Open-Meteo · AFEX Exchange · HuggingFace · Made in Nigeria 🇳🇬
         </p>
     </footer>
 </body>
