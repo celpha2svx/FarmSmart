@@ -311,12 +311,12 @@ class _AdvisoryCard extends StatelessWidget {
   }
 }
 
-class _QuickActionsGrid extends StatelessWidget {
+class _QuickActionsGrid extends ConsumerWidget {
   final Translations t;
   const _QuickActionsGrid({required this.t});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -335,7 +335,7 @@ class _QuickActionsGrid extends StatelessWidget {
                 child: _ActionButton(
                   emoji: '\u{1F4F7}',
                   label: t.t('scan_crop'),
-                  onTap: () {},
+                  onTap: () => Navigator.pushNamed(context, '/scanner'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -343,7 +343,7 @@ class _QuickActionsGrid extends StatelessWidget {
                 child: _ActionButton(
                   emoji: '\u{1F4C5}',
                   label: t.t('calendar'),
-                  onTap: () {},
+                  onTap: () => ref.read(currentTabProvider.notifier).state = 1,
                 ),
               ),
               const SizedBox(width: 8),
@@ -351,7 +351,7 @@ class _QuickActionsGrid extends StatelessWidget {
                 child: _ActionButton(
                   emoji: '\u{1F4B0}',
                   label: t.t('market'),
-                  onTap: () {},
+                  onTap: () => ref.read(currentTabProvider.notifier).state = 2,
                 ),
               ),
               const SizedBox(width: 8),
@@ -359,7 +359,10 @@ class _QuickActionsGrid extends StatelessWidget {
                 child: _ActionButton(
                   emoji: '\u{1F33F}',
                   label: t.t('advisory'),
-                  onTap: () {},
+                  onTap: () {
+                    ref.read(currentTabProvider.notifier).state = 0;
+                    Scrollable.ensureVisible(context, alignment: 0.3);
+                  },
                 ),
               ),
             ],
