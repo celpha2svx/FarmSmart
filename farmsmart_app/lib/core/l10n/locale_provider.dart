@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'translations.dart';
+export 'translations.dart';
 import '../../features/settings/providers/settings_provider.dart';
 
 final translationsProvider = Provider<Translations>((ref) {
