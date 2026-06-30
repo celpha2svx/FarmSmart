@@ -807,6 +807,53 @@ async def resolve_location_endpoint(q: str = Query(...)):
     return ok({"resolved": True, "lat": coords[0], "lon": coords[1], "name": q})
 
 
+# ── Weather (Open-Meteo, no API key required) ────────────────────────────────
+
+@router.get("/weather")
+async def get_weather(
+    lat: float = Query(...),
+    lon: float = Query(...),
+):
+    """Get current weather for a location from Open-Meteo (free, no API key).
+
+    Returns the envelope. On upstream failure the data is null and the
+    envelope is still `status: ok` — the caller decides what to do.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": lat,
+                    "longitude": lon,
+                    "current": "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m",
+                    "timezone": "Africa/Lagos",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            current = data.get("current", {})
+            return ok({
+                "temperature_c": current.get("temperature_2m"),
+                "humidity_pct": current.get("relative_humidity_2m"),
+                "precipitation_mm": current.get("precipitation"),
+                "wind_speed_kmh": current.get("wind_speed_10m"),
+                "time": current.get("time"),
+                "source": "open-meteo",
+            })
+    except Exception as e:
+        logger.warning(f"Weather fetch failed for ({lat}, {lon}): {e}")
+        return ok({
+            "temperature_c": None,
+            "humidity_pct": None,
+            "precipitation_mm": None,
+            "wind_speed_kmh": None,
+            "time": None,
+            "source": "open-meteo",
+            "upstream_error": True,
+        })
+
+
 # ── Admin: Register new release (called by CI/CD) ────────────────────────────
 
 class ReleaseRegister(BaseModel):

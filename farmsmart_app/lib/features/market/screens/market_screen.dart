@@ -9,7 +9,13 @@ import '../../../core/l10n/locale_provider.dart';
 import '../providers/market_provider.dart';
 
 final _crops = ['Maize', 'Rice', 'Beans', 'Millet', 'Groundnut'];
-final _cropEmojis = {'Maize': '\u{1F33D}', 'Rice': '\u{1F33E}', 'Beans': '\u{1FAD8}', 'Millet': '\u{1F33F}', 'Groundnut': '\u{1F95C}'};
+final _cropEmojis = {
+  'Maize': '\u{1F33D}',
+  'Rice': '\u{1F33E}',
+  'Beans': '\u{1FAD8}',
+  'Millet': '\u{1F33F}',
+  'Groundnut': '\u{1F95C}'
+};
 final _dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 class MarketScreen extends ConsumerStatefulWidget {
@@ -31,7 +37,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
       backgroundColor: AppColors.bg,
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: OfflineBanner()),
+          SliverToBoxAdapter(child: const OfflineBanner()),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -51,18 +57,28 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
                           color: selected ? AppColors.green600 : AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                          border: Border.all(color: selected ? AppColors.green600 : AppColors.border),
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                          border: Border.all(
+                              color: selected
+                                  ? AppColors.green600
+                                  : AppColors.border),
                         ),
                         child: Row(
                           children: [
-                            Text(_cropEmojis[crop]!, style: const TextStyle(fontSize: 18)),
+                            Text(_cropEmojis[crop]!,
+                                style: const TextStyle(fontSize: 18)),
                             const SizedBox(width: 6),
-                            Text(crop,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                                color: selected ? Colors.white : AppColors.ink,
-                              ),
+                            Text(
+                              crop,
+                              style:
+                                  Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontWeight: selected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        color: selected
+                                            ? Colors.white
+                                            : AppColors.ink,
+                                      ),
                             ),
                           ],
                         ),
@@ -86,13 +102,27 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               delegate: SliverChildListDelegate([
                 _PriceHeroCard(data: data),
                 const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(t.t('market_comparison'),
-                    style: Theme.of(context).textTheme.titleMedium),
-                ),
-                const SizedBox(height: 8),
-                ...data.markets.map((m) => _MarketRow(entry: m)),
+                if (data.markets.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(t.t('market_comparison'),
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  const SizedBox(height: 8),
+                  ...data.markets.map((m) => _MarketRow(entry: m)),
+                ] else
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Text(
+                        'No price data yet for $_selectedCrop.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: AppColors.inkMuted),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 32),
               ]),
             ),
@@ -109,7 +139,13 @@ class _PriceHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final changeColor = data.changePercent >= 0 ? AppColors.green500 : AppColors.red500;
+    final changeColor =
+        data.changePercent >= 0 ? AppColors.green500 : AppColors.red500;
+    final priceText = data.currentPrice != null
+        ? '\u{20A6}${data.currentPrice!.toStringAsFixed(0)}'
+        : 'No price data';
+    final unitText = data.currentUnit ?? '50kg bag';
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -124,62 +160,115 @@ class _PriceHeroCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(data.crop, style: Theme.of(context).textTheme.displayMedium),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: changeColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
+              Text(data.crop,
+                  style: Theme.of(context).textTheme.displayMedium),
+              if (data.weeklyPrices.length >= 2)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: changeColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Text(
+                    '${data.changePercent >= 0 ? '+' : ''}${data.changePercent.toStringAsFixed(1)}%',
+                    style: TextStyle(
+                        color: changeColor, fontWeight: FontWeight.w600),
+                  ),
                 ),
-                child: Text('${data.changePercent >= 0 ? '+' : ''}${data.changePercent.toStringAsFixed(1)}%',
-                  style: TextStyle(color: changeColor, fontWeight: FontWeight.w600)),
-              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text('\u{20A6}${data.currentPrice.toStringAsFixed(0)}/bag',
-            style: Theme.of(context).textTheme.displayLarge?.copyWith(color: AppColors.green800)),
-          Text('Last 7 days', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted)),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 120,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: data.weeklyPrices.reduce((a, b) => a > b ? a : b) * 1.15,
-                barGroups: data.weeklyPrices.asMap().entries.map((e) =>
-                  BarChartGroupData(x: e.key, barRods: [
-                    BarChartRodData(
-                      toY: e.value,
-                      color: AppColors.green400,
-                      width: 12,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    ),
-                  ]),
-                ).toList(),
-                titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, _) {
-                        final idx = value.toInt();
-                        if (idx < 0 || idx >= _dayLabels.length) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(_dayLabels[idx], style: const TextStyle(fontSize: 10, color: AppColors.inkMuted)),
-                        );
-                      },
+          Text(
+            '$priceText/$unitText',
+            style: Theme.of(context)
+                .textTheme
+                .displayLarge
+                ?.copyWith(color: AppColors.green800),
+          ),
+          if (data.currentMarket != null)
+            Text(
+              'Latest: ${data.currentMarket}  ·  ${data.priceDate ?? ''}',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppColors.inkMuted),
+            )
+          else
+            Text(
+              'Last 7 days',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppColors.inkMuted),
+            ),
+          if (data.weeklyPrices.length >= 2) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 120,
+              child: BarChart(
+                BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
+                  maxY: data.weeklyPrices.reduce((a, b) => a > b ? a : b) * 1.15,
+                  barGroups: data.weeklyPrices.asMap().entries.map((e) =>
+                    BarChartGroupData(x: e.key, barRods: [
+                      BarChartRodData(
+                        toY: e.value,
+                        color: AppColors.green400,
+                        width: 12,
+                        borderRadius:
+                            const BorderRadius.vertical(top: Radius.circular(4)),
+                      ),
+                    ])).toList(),
+                  titlesData: FlTitlesData(
+                    leftTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, _) {
+                          final idx = value.toInt();
+                          if (idx < 0 || idx >= _dayLabels.length) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(_dayLabels[idx],
+                                style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.inkMuted)),
+                          );
+                        },
+                      ),
                     ),
                   ),
+                  borderData: FlBorderData(show: false),
+                  gridData: const FlGridData(show: false),
                 ),
-                borderData: FlBorderData(show: false),
-                gridData: const FlGridData(show: false),
               ),
             ),
-          ),
+          ] else ...[
+            const SizedBox(height: 16),
+            Container(
+              height: 80,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Text(
+                'No price history yet',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: AppColors.inkMuted),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -204,27 +293,45 @@ class _MarketRow extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 40, height: 40,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: AppColors.green100,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.store, color: AppColors.green700, size: 20),
+              child:
+                  const Icon(Icons.store, color: AppColors.green700, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(entry.name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+                  Text(
+                    entry.name,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 2),
-                  Text('${entry.distanceKm} km away \u00B7 ${entry.updatedAgo}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted)),
+                  Text(
+                    '${entry.unit}  ·  ${entry.priceDate}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.inkMuted),
+                  ),
                 ],
               ),
             ),
-            Text('\u{20A6}${entry.pricePerBag.toStringAsFixed(0)}',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.green800)),
+            Text(
+              '\u{20A6}${entry.priceNgn.toStringAsFixed(0)}',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineMedium
+                  ?.copyWith(color: AppColors.green800),
+            ),
           ],
         ),
       ),

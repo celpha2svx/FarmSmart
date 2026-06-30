@@ -541,6 +541,34 @@ Auth required. Reserved for Phase 8+.
 
 ---
 
+### 16. `GET /api/weather`
+
+Current weather snapshot for a coordinate from Open-Meteo (no key required).
+
+**Query params**
+- `lat` (float, required)
+- `lon` (float, required)
+
+**Response 200**
+```json
+{
+  "status": "ok",
+  "data": {
+    "temperature_c": 28.4,
+    "humidity_pct": 78.0,
+    "precipitation_mm": 0.0,
+    "wind_speed_kmh": 7.2,
+    "time": "2026-06-30T14:00",
+    "source": "open-meteo"
+  },
+  "error": null
+}
+```
+
+On upstream failure fields are `null` and `upstream_error: true`. Status is still `ok` — the caller decides whether to display stale data or hide the row.
+
+---
+
 ## Change log
 
 | Date | Change | Reason |

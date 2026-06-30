@@ -444,10 +444,11 @@ def get_latest_market_price(db: Session, crop: str, market: str = None) -> Optio
 def get_task_templates(db: Session, crop: str, region: str = "all", season: str = "all") -> list[FarmingTaskTemplate]:
     """Get task templates for a crop, filtered by region and season."""
     q = db.query(FarmingTaskTemplate).filter(FarmingTaskTemplate.crop == crop)
-    q = q.filter(
-        (FarmingTaskTemplate.region == region) |
-        (FarmingTaskTemplate.region == "all")
-    )
+    if region != "all":
+        q = q.filter(
+            (FarmingTaskTemplate.region == region) |
+            (FarmingTaskTemplate.region == "all")
+        )
     if season != "all":
         q = q.filter(
             (FarmingTaskTemplate.season == season) |

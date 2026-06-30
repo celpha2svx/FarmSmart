@@ -23,17 +23,34 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final phone = '+234${_phoneController.text.trim()}';
     final name = _nameController.text.trim();
-    ref.read(authProvider.notifier).sendOtp(phone: phone, name: name);
-    Navigator.pushNamed(context, '/otp', arguments: phone);
+    final sent = await ref.read(authProvider.notifier).sendOtp(phone: phone, name: name);
+    if (!mounted) return;
+    if (sent) {
+      Navigator.pushNamed(context, '/otp', arguments: {'phone': phone, 'isSignIn': false});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationsProvider);
+    final auth = ref.watch(authProvider);
+    final isLoading = auth.isLoading;
+
+    ref.listen<AuthState>(authProvider, (prev, next) {
+      if (next.error != null && !next.isLoading) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
 
     return Scaffold(
       body: Container(
@@ -43,11 +60,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              AppColors.green900,
-              AppColors.green800,
-              AppColors.green700,
-            ],
+            colors: [AppColors.green900, AppColors.green800, AppColors.green700],
           ),
         ),
         child: SafeArea(
@@ -61,7 +74,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   const SizedBox(height: 8),
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: isLoading ? null : () => Navigator.pop(context),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -74,24 +87,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign up to get started',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.8),
-                    ),
+                    'Create your account to get started.',
+                    style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.8)),
                   ),
                   const SizedBox(height: 40),
                   TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    maxLength: 10,
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    enabled: !isLoading,
                     decoration: InputDecoration(
-                      labelText: t.t('phone_number'),
-                      prefixText: '+234 ',
-                      prefixStyle: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      labelText: t.t('full_name'),
+                      prefixIcon: const Icon(Icons.person_outline, color: Colors.white70),
                       labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.15),
@@ -105,24 +112,31 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.white),
+                        borderSide: const BorderSide(color: Colors.white, width: 1.5),
                       ),
-                      counterStyle: const TextStyle(color: Colors.white70),
+                      errorStyle: const TextStyle(color: Colors.yellow),
                     ),
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                     validator: (val) {
-                      if (val == null || val.length != 10) {
-                        return 'Enter a valid 10-digit phone number';
+                      if (val == null || val.trim().length < 2) {
+                        return 'Enter your full name';
                       }
                       return null;
                     },
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   TextFormField(
-                    controller: _nameController,
-                    textCapitalization: TextCapitalization.words,
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.done,
+                    maxLength: 10,
+                    enabled: !isLoading,
+                    onFieldSubmitted: (_) => _submit(),
                     decoration: InputDecoration(
-                      labelText: t.t('full_name'),
+                      labelText: t.t('phone_number'),
+                      prefixText: '+234 ',
+                      prefixIcon: const Icon(Icons.phone_outlined, color: Colors.white70),
+                      prefixStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
                       labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.15),
@@ -136,13 +150,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.white),
+                        borderSide: const BorderSide(color: Colors.white, width: 1.5),
                       ),
+                      counterStyle: const TextStyle(color: Colors.white70),
+                      errorStyle: const TextStyle(color: Colors.yellow),
                     ),
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                     validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return 'Please enter your full name';
+                      if (val == null || val.trim().length != 10) {
+                        return 'Enter a valid 10-digit phone number';
+                      }
+                      if (!RegExp(r'^\d{10}$').hasMatch(val.trim())) {
+                        return 'Phone number must contain only digits';
                       }
                       return null;
                     },
@@ -152,10 +171,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: _submit,
+                      onPressed: isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.green900,
+                        disabledBackgroundColor: Colors.white.withOpacity(0.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -164,7 +184,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: Text('${t.t('verify')} \u2192'),
+                      child: isLoading
+                          ? SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: AppColors.green800,
+                              ),
+                            )
+                          : const Text('Send verification code →'),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -172,21 +201,22 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     child: Text(
                       'By signing up, you agree to our Terms of Service\nand Privacy Policy.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.65)),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: isLoading
+                          ? null
+                          : () => Navigator.pushReplacementNamed(context, '/pin-login'),
                       child: Text(
-                        'Already have an account? Sign in',
+                        'Already have an account? Sign in with PIN',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.9),
                           fontSize: 15,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white.withOpacity(0.5),
                         ),
                       ),
                     ),

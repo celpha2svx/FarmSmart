@@ -21,9 +21,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
 
-  String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
   void _onDaySelected(DateTime selected, DateTime focused) {
     setState(() {
       _selectedDay = selected;
@@ -34,20 +31,31 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   void _showAddTaskSheet() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => const _AddTaskSheet(),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AddTaskSheet(
+        onAdd: (title, type) {
+          ref.read(customTasksProvider.notifier).add(title, type);
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final tasksAsync = ref.watch(tasksProvider(_formatDate(_selectedDay)));
+    final tasksAsync = ref.watch(tasksProvider);
+    final customTasks = ref.watch(customTasksProvider);
+    final completions = ref.watch(taskCompletionProvider);
     final t = ref.watch(translationsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAF9),
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: OfflineBanner()),
+          SliverToBoxAdapter(child: const OfflineBanner()),
           SliverToBoxAdapter(
             child: TableCalendar(
               focusedDay: _focusedDay,
@@ -58,28 +66,61 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               headerStyle: HeaderStyle(
                 titleCentered: true,
                 formatButtonVisible: false,
-                titleTextStyle: TextStyle(color: AppColors.green800, fontSize: 18, fontWeight: FontWeight.w600),
-                leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.green700),
-                rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.green700),
+                titleTextStyle: TextStyle(
+                    color: AppColors.green800,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600),
+                leftChevronIcon:
+                    Icon(Icons.chevron_left, color: AppColors.green700),
+                rightChevronIcon:
+                    Icon(Icons.chevron_right, color: AppColors.green700),
               ),
               calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(color: AppColors.green100, shape: BoxShape.circle),
-                selectedDecoration: BoxDecoration(color: AppColors.green600, shape: BoxShape.circle),
-                todayTextStyle: TextStyle(color: AppColors.green800, fontWeight: FontWeight.bold),
-                selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                todayDecoration: BoxDecoration(
+                    color: AppColors.green100, shape: BoxShape.circle),
+                selectedDecoration: BoxDecoration(
+                    color: AppColors.green600, shape: BoxShape.circle),
+                todayTextStyle: TextStyle(
+                    color: AppColors.green800, fontWeight: FontWeight.bold),
+                selectedTextStyle: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ),
-          SliverToBoxAdapter(child: SizedBox(height: 16)),
+          SliverToBoxAdapter(child: const SizedBox(height: 16)),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                '${t.t('tasks')} for ${_selectedDay.day}/${_selectedDay.month}/${_selectedDay.year}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.ink),
+              child: Row(
+                children: [
+                  Text(
+                    '${t.t('tasks')} — ${_selectedDay.day}/${_selectedDay.month}/${_selectedDay.year}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(color: AppColors.ink),
+                  ),
+                ],
               ),
             ),
           ),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          if (customTasks.isNotEmpty)
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final task = customTasks[index];
+                  final isComplete = completions.contains(task.id);
+                  return _CustomTaskItem(
+                    task: task,
+                    isComplete: isComplete,
+                    onToggle: () => ref.read(taskCompletionProvider.notifier).toggle(task.id),
+                    onDelete: () => ref.read(customTasksProvider.notifier).remove(task.id),
+                  );
+                },
+                childCount: customTasks.length,
+              ),
+            ),
           tasksAsync.when(
             loading: () => const SliverFillRemaining(
               hasScrollBody: true,
@@ -90,7 +131,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               child: ErrorCard(message: e.toString()),
             ),
             data: (tasks) {
-              if (tasks.isEmpty) {
+              if (tasks.isEmpty && customTasks.isEmpty) {
                 return SliverFillRemaining(
                   hasScrollBody: true,
                   child: EmptyState(title: t.t('no_tasks')),
@@ -98,12 +139,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               }
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => _TaskItem(task: tasks[index]),
+                  (context, index) {
+                    final task = tasks[index];
+                    final isComplete = completions.contains(task.id);
+                    return _TaskItem(
+                      task: task,
+                      isComplete: isComplete,
+                      onToggle: () =>
+                          ref.read(taskCompletionProvider.notifier).toggle(task.id),
+                    );
+                  },
                   childCount: tasks.length,
                 ),
               );
             },
           ),
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -115,12 +166,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 }
 
-class _TaskItem extends ConsumerWidget {
+class _TaskItem extends StatelessWidget {
   final FarmTask task;
-  const _TaskItem({required this.task});
+  final bool isComplete;
+  final VoidCallback onToggle;
+  const _TaskItem({required this.task, required this.isComplete, required this.onToggle});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final (Color bg, Color fg) = switch (task.type) {
       'fertilizer' => (AppColors.earth100, AppColors.earth700),
       'pest' => (AppColors.red100, AppColors.red500),
@@ -146,15 +199,22 @@ class _TaskItem extends ConsumerWidget {
         child: Row(
           children: [
             GestureDetector(
-              onTap: () {},
-              child: Container(
-                width: 24, height: 24,
+              onTap: onToggle,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: task.completed ? AppColors.green500 : AppColors.inkMuted, width: 2),
-                  color: task.completed ? AppColors.green500 : Colors.transparent,
+                  border: Border.all(
+                    color: isComplete ? AppColors.green500 : AppColors.inkMuted,
+                    width: 2,
+                  ),
+                  color: isComplete ? AppColors.green500 : Colors.transparent,
                 ),
-                child: task.completed ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                child: isComplete
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    : null,
               ),
             ),
             const SizedBox(width: 12),
@@ -162,16 +222,33 @@ class _TaskItem extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(task.name,
+                  Text(
+                    task.title,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      decoration: task.completed ? TextDecoration.lineThrough : null,
-                      color: task.completed ? AppColors.inkMuted : AppColors.ink,
-                    ),
+                          fontWeight: FontWeight.w500,
+                          decoration: isComplete ? TextDecoration.lineThrough : null,
+                          color: isComplete ? AppColors.inkMuted : AppColors.ink,
+                        ),
                   ),
-                  if (task.note != null) ...[
+                  if (task.description != null && task.description!.isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Text(task.note!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted)),
+                    Text(
+                      task.description!,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppColors.inkMuted),
+                    ),
+                  ],
+                  if (task.daysAfterPlanting != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Day ${task.daysAfterPlanting} after planting',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppColors.green700, fontSize: 10),
+                    ),
                   ],
                 ],
               ),
@@ -185,8 +262,80 @@ class _TaskItem extends ConsumerWidget {
   }
 }
 
+class _CustomTaskItem extends StatelessWidget {
+  final CustomTask task;
+  final bool isComplete;
+  final VoidCallback onToggle;
+  final VoidCallback onDelete;
+
+  const _CustomTaskItem({
+    required this.task,
+    required this.isComplete,
+    required this.onToggle,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: AppColors.green200),
+          boxShadow: [AppShadows.sm],
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: onToggle,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isComplete ? AppColors.green500 : AppColors.inkMuted,
+                    width: 2,
+                  ),
+                  color: isComplete ? AppColors.green500 : Colors.transparent,
+                ),
+                child: isComplete
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                task.title,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      decoration: isComplete ? TextDecoration.lineThrough : null,
+                      color: isComplete ? AppColors.inkMuted : AppColors.ink,
+                    ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const AppChip(label: 'custom', variant: ChipVariant.green),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onDelete,
+              child: const Icon(Icons.close, size: 18, color: AppColors.inkMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AddTaskSheet extends StatefulWidget {
-  const _AddTaskSheet();
+  final void Function(String title, String type) onAdd;
+  const _AddTaskSheet({required this.onAdd});
 
   @override
   State<_AddTaskSheet> createState() => _AddTaskSheetState();
@@ -194,6 +343,8 @@ class _AddTaskSheet extends StatefulWidget {
 
 class _AddTaskSheetState extends State<_AddTaskSheet> {
   final _controller = TextEditingController();
+  String _selectedType = 'general';
+  final _types = ['general', 'water', 'fertilizer', 'pest', 'harvest'];
 
   @override
   void dispose() {
@@ -207,31 +358,70 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
     final t = container.read(translationsProvider);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 24, 16, MediaQuery.of(context).viewInsets.bottom + 24),
+      padding: EdgeInsets.fromLTRB(
+          16, 24, 16, MediaQuery.of(context).viewInsets.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(t.t('add_task'), style: Theme.of(context).textTheme.titleMedium),
+          Row(
+            children: [
+              Expanded(
+                child: Text(t.t('add_task'),
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
+            autofocus: true,
             decoration: InputDecoration(
-              hintText: t.t('add_task'),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+              hintText: 'e.g. Apply fertilizer to field 2',
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _types.map((type) {
+                final selected = _selectedType == type;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(type),
+                    selected: selected,
+                    onSelected: (_) => setState(() => _selectedType = type),
+                    selectedColor: AppColors.green100,
+                    checkmarkColor: AppColors.green700,
+                  ),
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
+              final title = _controller.text.trim();
+              if (title.isEmpty) return;
+              widget.onAdd(title, _selectedType);
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.green600,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.sm)),
             ),
-            child: Text(t.t('add_task'), style: const TextStyle(color: Colors.white)),
+            child: Text(t.t('add_task'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
