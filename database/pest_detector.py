@@ -148,13 +148,19 @@ PEST_TREATMENTS = {
 async def detect_pest(image_bytes: bytes) -> dict:
     """
     Send image to HuggingFace Inference API for plant disease classification.
-    
-    Returns structured result with pest name, confidence, severity, treatment.
-    Falls back to simulated result if HF token not configured.
+
+    Returns a structured result with pest name, confidence, severity, treatment.
+
+    Honest failure modes (we never invent a pest):
+      - If HUGGINGFACE_TOKEN is not set, returns "unable to identify" with
+        severity="unknown". The Flutter UI must show this honestly.
+      - If HF returns 503 (model loading), returns the same honest response
+        and tells the user to try again in a minute.
+      - On any other error (network, 5xx), same honest response.
     """
     if not settings.huggingface_token:
-        logger.warning("HUGGINGFACE_TOKEN not set — using simulated detection")
-        return _simulate_detection()
+        logger.warning("HUGGINGFACE_TOKEN not set — returning honest 'unable to identify'")
+        return _unavailable_response(reason="model_not_configured")
 
     model = settings.huggingface_model
     url = f"{HF_API_URL}/{model}"
@@ -170,66 +176,87 @@ async def detect_pest(image_bytes: bytes) -> dict:
             )
             if resp.status_code == 200:
                 result = resp.json()
-                return _parse_hf_result(result)
+                return _parse_hf_result(result, model_version=model)
             elif resp.status_code == 503:
-                # Model is loading on HF — return simulated result for first use
-                logger.info("HF model loading — returning simulated result")
-                return _simulate_detection()
+                logger.info("HF model loading — telling user to retry")
+                return _unavailable_response(reason="model_loading")
             else:
                 logger.warning(f"HF API error {resp.status_code}: {resp.text[:200]}")
-                return _simulate_detection()
+                return _unavailable_response(reason="upstream_error")
     except Exception as e:
         logger.warning(f"HF API call failed: {e}")
-        return _simulate_detection()
+        return _unavailable_response(reason="network_error")
 
 
-def _parse_hf_result(result: list | dict) -> dict:
-    """Parse HuggingFace API response into structured pest detection result."""
+def _parse_hf_result(result: list | dict, model_version: str) -> dict:
+    """Parse HuggingFace API response into structured pest detection result.
+
+    If the model returns no usable prediction, we say so — we do not invent one.
+    """
     if isinstance(result, list) and len(result) > 0:
-        # Most HF image models return: [[{"label": "...", "score": ...}, ...]]
         predictions = result[0] if isinstance(result[0], list) else result
         if predictions and len(predictions) > 0:
             top = predictions[0]
             label = top.get("label", "").lower().replace(" ", "_")
             confidence = round(top.get("score", 0) * 100, 1)
-            return _build_pest_result(label, confidence)
+            return _build_pest_result(label, confidence, model_version=model_version)
 
-    return _simulate_detection()
+    return _unavailable_response(reason="no_prediction")
 
 
-def _build_pest_result(pest_id: str, confidence: float) -> dict:
-    """Build structured result from pest ID."""
+def _build_pest_result(pest_id: str, confidence: float, model_version: str) -> dict:
+    """Build structured result from a recognized pest id."""
     info = PEST_TREATMENTS.get(pest_id, PEST_TREATMENTS["fall_armyworm"])
     return {
         "pest_id": pest_id,
         "pest_name": info["name"],
+        "scientific_name": SCIENTIFIC_NAMES.get(pest_id),
         "confidence": min(confidence, 99.0),
         "severity": info["severity"],
         "treatment": info["treatment"],
         "prevention": info["prevention"],
         "is_simulated": False,
+        "model_version": model_version,
     }
 
 
-def _simulate_detection() -> dict:
-    """
-    Simulated detection when HuggingFace is unavailable.
-    Returns realistic-looking result for demo/testing.
-    Used only as fallback — real detection comes from HF.
-    """
-    import random
-    pest_ids = list(PEST_TREATMENTS.keys())
-    # Exclude healthy for simulation
-    pest_ids.remove("healthy")
-    pest_id = random.choice(pest_ids)
-    info = PEST_TREATMENTS[pest_id]
-    confidence = round(random.uniform(72.0, 96.0), 1)
+def _unavailable_response(reason: str) -> dict:
+    """Honest 'we cannot identify this right now' response. Never invent a pest."""
     return {
-        "pest_id": pest_id,
-        "pest_name": info["name"],
-        "confidence": confidence,
-        "severity": info["severity"],
-        "treatment": info["treatment"],
-        "prevention": info["prevention"],
-        "is_simulated": True,
+        "pest_id": "unknown",
+        "pest_name": "Unable to identify",
+        "scientific_name": None,
+        "confidence": 0.0,
+        "severity": "unknown",
+        "treatment": (
+            "Pest detection is currently unavailable. "
+            "Please try again in a minute, or contact your local extension officer."
+        ),
+        "prevention": None,
+        "is_simulated": False,           # explicit: NOT simulated
+        "model_version": None,
+        "unavailable_reason": reason,    # debug aid for the backend team
     }
+
+
+# Scientific names for the pests we recognize. Not exhaustive — these are
+# the species most likely to appear in Nigerian smallholder fields.
+SCIENTIFIC_NAMES = {
+    "fall_armyworm": "Spodoptera frugiperda",
+    "stem_borer":    "Busseola fusca",
+    "rice_blast":    "Magnaporthe oryzae",
+    "cassava_mosaic": "Begomovirus spp.",
+    "black_pod":     "Phytophthora megakarya",
+    "late_blight":   "Phytophthora infestans",
+    "early_blight":  "Alternaria solani",
+    "aphids":        "Aphidoidea spp.",
+    "whitefly":      "Bemisia tabaci",
+    "thrips":        "Thysanoptera spp.",
+    "pod_borer":     "Maruca vitrata",
+    "leaf_spot":     "Cercospora spp.",
+    "downy_mildew":  "Peronospora spp.",
+    "powdery_mildew": "Erysiphales spp.",
+    "anthracnose":   "Colletotrichum spp.",
+    "rust":          "Puccinia spp.",
+    "healthy":       None,
+}

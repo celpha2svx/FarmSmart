@@ -5,6 +5,8 @@ All DB access goes through these functions — no raw SQL elsewhere.
 
 import json
 import logging
+import hashlib
+import secrets
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -12,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from database.models import (
     Farmer, Alert, DegreeDay, RegistrationState,
     AppUser, OtpCode, Announcement, AppFeedback, AppRelease, AnalyticsEvent,
-    MarketPrice, FarmingTaskTemplate, SatelliteCache,
+    MarketPrice, FarmingTaskTemplate, SatelliteCache, TaskState, CropPlanting,
 )
 from utils.helpers import generate_uuid, utcnow_iso
 
@@ -30,12 +32,26 @@ def create_farmer(
     lon: float,
     farm_size: str,
     name: str = None,
+    crops: Optional[list] = None,
+    planting_date: Optional[str] = None,
 ) -> Farmer:
+    """Create a new farmer (or return existing one).
+
+    `crop` is kept as the *primary* crop (back-compat with the WhatsApp bot
+    and `/api/farm/{phone}` consumers). `crops` is a list of all crops the
+    farmer plants; if absent we use `[crop]`.
+
+    `planting_date` is a single ISO date string ('YYYY-MM-DD') that applies
+    to the primary crop. If you need per-crop dates, add a CropPlanting row
+    after creation via `add_crop_planting()`.
+    """
+    crops_list = [c.lower() for c in (crops or [])] or [crop.lower()]
     farmer = Farmer(
         id=generate_uuid(),
         phone=phone,
         name=name,
         crop=crop.lower(),
+        crops=json.dumps(crops_list),
         location_raw=location_raw,
         lat=lat,
         lon=lon,
@@ -48,12 +64,64 @@ def create_farmer(
     try:
         db.commit()
         db.refresh(farmer)
-        logger.info(f"Registered new farmer: {phone} ({crop} at {location_raw})")
+        logger.info(f"Registered new farmer: {phone} ({crops_list} at {location_raw})")
     except IntegrityError:
         db.rollback()
         logger.warning(f"Farmer already exists: {phone}")
         farmer = get_farmer_by_phone(db, phone)
+        # Update crops list and re-save
+        if crops_list:
+            farmer.crops = json.dumps(crops_list)
+            farmer.crop = crops_list[0]
+            db.commit()
+            db.refresh(farmer)
+
+    if planting_date:
+        add_crop_planting(db, farmer.id, crops_list[0], planting_date)
+
     return farmer
+
+
+def add_crop_planting(db: Session, farmer_id: str, crop: str, planting_date: str) -> None:
+    """Record that `farmer` planted `crop` on `planting_date` (ISO date).
+
+    Replaces any prior planting for the same crop.
+    """
+    from database.models import CropPlanting
+    existing = db.query(CropPlanting).filter(
+        CropPlanting.farmer_id == farmer_id,
+        CropPlanting.crop == crop.lower(),
+    ).first()
+    if existing:
+        existing.planting_date = planting_date
+    else:
+        db.add(CropPlanting(
+            id=generate_uuid(),
+            farmer_id=farmer_id,
+            crop=crop.lower(),
+            planting_date=planting_date,
+            created_at=utcnow_iso(),
+        ))
+    db.commit()
+
+
+def get_crop_plantings(db: Session, farmer_id: str) -> dict:
+    """Return {crop: planting_date} for all plantings of a farmer."""
+    from database.models import CropPlanting
+    rows = db.query(CropPlanting).filter(CropPlanting.farmer_id == farmer_id).all()
+    return {r.crop: r.planting_date for r in rows}
+
+
+def get_farmer_crops(db: Session, farmer_id: str) -> list:
+    """Return the farmer's crops list (parsed from JSON). Empty if unset."""
+    from database.models import Farmer
+    farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+    if not farmer or not farmer.crops:
+        return []
+    try:
+        return json.loads(farmer.crops)
+    except (TypeError, ValueError):
+        return []
 
 
 def get_farmer_by_phone(db: Session, phone: str) -> Optional[Farmer]:
@@ -239,6 +307,50 @@ def verify_app_token(db: Session, phone: str, token: str) -> bool:
     return user is not None
 
 
+# ── PIN auth (for returning users without OTP) ─────────────────────────────────
+
+def _hash_pin(phone: str, pin: str, salt: str) -> str:
+    """Hash a 4-digit PIN with phone + per-user salt. scrypt is in the stdlib."""
+    return hashlib.scrypt(
+        f"{phone}:{pin}".encode("utf-8"),
+        salt=salt.encode("utf-8"),
+        n=2 ** 14, r=8, p=1,
+        dklen=32,
+    ).hex()
+
+
+def set_user_pin(db: Session, phone: str, pin: str) -> bool:
+    """Set/overwrite the PIN for a user. PIN must be exactly 4 digits."""
+    if not (pin and pin.isdigit() and len(pin) == 4):
+        return False
+    user = db.query(AppUser).filter(AppUser.phone == phone).first()
+    if not user:
+        return False
+    salt = secrets.token_hex(16)
+    user.pin_hash = f"{salt}${_hash_pin(phone, pin, salt)}"
+    db.commit()
+    return True
+
+
+def verify_user_pin(db: Session, phone: str, pin: str) -> bool:
+    """Verify a 4-digit PIN for a user. Returns False on bad PIN, missing user, or missing PIN set."""
+    if not (pin and pin.isdigit() and len(pin) == 4):
+        return False
+    user = db.query(AppUser).filter(AppUser.phone == phone).first()
+    if not user or not user.pin_hash:
+        return False
+    try:
+        salt, expected = user.pin_hash.split("$", 1)
+    except ValueError:
+        return False
+    return secrets.compare_digest(_hash_pin(phone, pin, salt), expected)
+
+
+def has_user_pin(db: Session, phone: str) -> bool:
+    user = db.query(AppUser).filter(AppUser.phone == phone).first()
+    return bool(user and user.pin_hash)
+
+
 # ── Announcements ───────────────────────────────────────────────────────────────
 
 def get_active_announcements(db: Session) -> list[Announcement]:
@@ -397,6 +509,110 @@ def seed_task_templates(db: Session):
         ))
     db.commit()
     logger.info(f"Seeded {len(templates)} task templates")
+
+
+# ── Per-day tasks (Phase 1 contract) ──────────────────────────────────────────
+
+def expand_tasks_for_day(
+    db: Session,
+    phone: str,
+    crop: str,
+    date_str: str,
+    planting_date: Optional[str] = None,
+    region: str = "all",
+) -> list[dict]:
+    """Expand task templates into per-day task instances for `date_str`.
+
+    For each template whose `days_after_planting` matches the farmer's
+    planting date calendar, return a per-day dict with the template fields
+    + the farmer's current completion state for that date.
+
+    `planting_date` is an ISO date string. If absent we default to a
+    `days_after_planting` of 30 (matching the old default).
+    """
+    from datetime import date as _date, datetime, timedelta
+    target = _parse_iso_date(date_str) or _date.today()
+    planting = _parse_iso_date(planting_date) or (target - timedelta(days=30))
+    days_since = (target - planting).days
+
+    templates = get_task_templates(db, crop=crop, region=region)
+    state_rows = db.query(TaskState).filter(
+        TaskState.phone == phone,
+        TaskState.crop == crop,
+        TaskState.due_date == target.isoformat(),
+    ).all()
+    state_by_template = {s.template_id: s for s in state_rows}
+
+    tasks = []
+    for tmpl in templates:
+        if tmpl.days_after_planting != days_since:
+            continue
+        state = state_by_template.get(tmpl.id)
+        tasks.append({
+            "id": state.id if state else f"{tmpl.id}@{target.isoformat()}",
+            "template_id": tmpl.id,
+            "title": state.custom_title if (state and state.custom_title) else tmpl.title,
+            "type": tmpl.task_type,
+            "note": state.custom_note if (state and state.custom_note) else tmpl.description,
+            "due_date": target.isoformat(),
+            "completed": bool(state and state.completed),
+            "custom": bool(state and (state.custom_title or state.custom_note)),
+        })
+    return tasks
+
+
+def _parse_iso_date(s: Optional[str]):
+    from datetime import date as _date, datetime
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def upsert_task_state(
+    db: Session,
+    phone: str,
+    template_id: str,
+    crop: str,
+    due_date: str,
+    completed: Optional[bool] = None,
+    custom_title: Optional[str] = None,
+    custom_note: Optional[str] = None,
+) -> TaskState:
+    """Create or update a TaskState row for (phone, template_id, due_date)."""
+    row = db.query(TaskState).filter(
+        TaskState.phone == phone,
+        TaskState.template_id == template_id,
+        TaskState.due_date == due_date,
+    ).first()
+    now = utcnow_iso()
+    if not row:
+        row = TaskState(
+            id=generate_uuid(),
+            phone=phone, template_id=template_id, crop=crop,
+            due_date=due_date, completed=1 if completed else 0,
+            custom_title=custom_title, custom_note=custom_note,
+            completed_at=now if completed else None,
+            created_at=now,
+        )
+        db.add(row)
+    else:
+        if completed is not None:
+            row.completed = 1 if completed else 0
+            row.completed_at = now if completed else None
+        if custom_title is not None:
+            row.custom_title = custom_title
+        if custom_note is not None:
+            row.custom_note = custom_note
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def get_task_state(db: Session, task_id: str) -> Optional[TaskState]:
+    return db.query(TaskState).filter(TaskState.id == task_id).first()
 
 
 # ── Satellite Cache ────────────────────────────────────────────────────────────

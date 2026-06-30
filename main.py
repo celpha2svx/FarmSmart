@@ -11,6 +11,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import HTTPException as _HTTPException, RequestValidationError as _RequestValidationError
+from fastapi.responses import JSONResponse as _JSONResponse
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy import text
@@ -135,6 +137,41 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+# ── Envelope-shaped error responses ───────────────────────────────────────────
+# app_api.py raises HTTPException with detail={"status": "error", "data": None,
+# "error": {...}} so the mobile app always sees a consistent envelope.
+@app.exception_handler(_HTTPException)
+async def _http_exception_handler(request: Request, exc: _HTTPException):
+    detail = exc.detail
+    if isinstance(detail, dict) and "status" in detail and "data" in detail and "error" in detail:
+        return _JSONResponse(status_code=exc.status_code, content=detail)
+    return _JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "data": None,
+            "error": {"code": "http_error", "message": str(detail)},
+        },
+    )
+
+
+@app.exception_handler(_RequestValidationError)
+async def _validation_exception_handler(request: Request, exc: _RequestValidationError):
+    return _JSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "data": None,
+            "error": {
+                "code": "validation_error",
+                "message": "Request body failed validation",
+                "details": exc.errors(),
+            },
+        },
+    )
+
 
 # ── Mobile App API ────────────────────────────────────────────────────────────
 app.include_router(app_api_router)

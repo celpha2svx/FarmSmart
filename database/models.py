@@ -17,7 +17,8 @@ class Farmer(Base):
     id           = Column(Text, primary_key=True)          # UUID
     phone        = Column(Text, unique=True, nullable=False)
     name         = Column(Text)
-    crop         = Column(Text, nullable=False)
+    crop         = Column(Text, nullable=False)            # primary crop (back-compat with WhatsApp bot)
+    crops        = Column(Text)                            # JSON list of crop ids, e.g. '["maize","yam"]'
     location_raw = Column(Text, nullable=False)            # e.g. 'Sabon Gari, Kaduna'
     lat          = Column(Float, nullable=False)
     lon          = Column(Float, nullable=False)
@@ -28,6 +29,20 @@ class Farmer(Base):
 
     alerts      = relationship("Alert", back_populates="farmer", cascade="all, delete")
     degree_days = relationship("DegreeDay", back_populates="farmer", cascade="all, delete")
+    plantings   = relationship("CropPlanting", back_populates="farmer", cascade="all, delete-orphan")
+
+
+class CropPlanting(Base):
+    """One row per crop a farmer has planted. Tracks planting date and stage."""
+    __tablename__ = "crop_plantings"
+
+    id             = Column(Text, primary_key=True)       # UUID
+    farmer_id      = Column(Text, ForeignKey("farmers.id"), nullable=False)
+    crop           = Column(Text, nullable=False)         # 'maize' | 'rice' | 'yam' | ...
+    planting_date  = Column(Text, nullable=False)         # ISO date 'YYYY-MM-DD'
+    created_at     = Column(Text, nullable=False)         # ISO timestamp
+
+    farmer = relationship("Farmer", back_populates="plantings")
 
 
 class Alert(Base):
@@ -79,6 +94,7 @@ class AppUser(Base):
     created_at = Column(Text, nullable=False)             # ISO timestamp
     last_login = Column(Text, nullable=False)             # ISO timestamp
     data_consent = Column(Integer, default=0)             # 1=consented to data collection
+    pin_hash   = Column(Text)                              # bcrypt/argon2 hash of 4-digit PIN (set after first OTP)
 
 
 class OtpCode(Base):
@@ -197,8 +213,52 @@ class SatelliteCache(Base):
     created_at       = Column(Text, nullable=False)
 
 
+class TaskState(Base):
+    """Per-user state for a task template. Tracks completion + edits.
+
+    Replaces the old `# dedicated table in Phase 2` comment that lived in
+    /api/tasks/sync. One row per (phone, template_id, due_date). When the
+    template fires on the same date for a farmer with a different planting
+    calendar, we re-derive the due_date and store it again.
+    """
+    __tablename__ = "task_states"
+
+    id           = Column(Text, primary_key=True)          # UUID
+    phone        = Column(Text, nullable=False, index=True)
+    template_id  = Column(Text, nullable=False)
+    crop         = Column(Text, nullable=False, index=True)
+    due_date     = Column(Text, nullable=False, index=True)  # 'YYYY-MM-DD'
+    completed    = Column(Integer, default=0)              # 0/1
+    custom_title = Column(Text)
+    custom_note  = Column(Text)
+    completed_at = Column(Text)
+    created_at   = Column(Text, nullable=False)
+
+
 def init_db(database_url: str, **kwargs):
-    """Create all tables if they don't exist."""
+    """Create all tables if they don't exist, and run lightweight column-add migrations."""
     engine = create_engine(database_url, **kwargs)
     Base.metadata.create_all(engine)
+    _run_lightweight_migrations(engine)
     return engine
+
+
+def _run_lightweight_migrations(engine) -> None:
+    """Idempotent column-add migrations for SQLite.
+
+    SQLAlchemy's create_all() is a no-op for existing tables, so new columns
+    must be added explicitly. Keep this list short and explicit; for real
+    migrations use Alembic (already configured in this repo at /alembic).
+    """
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    if "app_users" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("app_users")}
+        if "pin_hash" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE app_users ADD COLUMN pin_hash TEXT"))
+    if "farmers" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("farmers")}
+        if "crops" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE farmers ADD COLUMN crops TEXT"))

@@ -147,7 +147,29 @@ def generate_daily_advisory(
     # ── Derive action items ──
     advisory["action_items"] = _derive_actions(advisory["tips"], advisory["warnings"])
 
+    # Phase 1 contract: the mobile home card reads `actions` (a flat list of
+    # imperative strings the farmer can act on). It is a flattened view of
+    # tips + warnings phrased as instructions. We keep `tips`/`warnings` for
+    # future rich UI.
+    advisory["actions"] = _flatten_to_actions(advisory["tips"], advisory["warnings"])
+
     return advisory
+
+
+def _flatten_to_actions(tips: list, warnings: list) -> list:
+    """Flatten tips + warnings into a single list of action verbs for the home card."""
+    actions = []
+    for w in warnings:
+        # warnings already start with verbs in most cases; if not, prefix one
+        if not w.lower().startswith(("apply", "scout", "check", "monitor", "consider",
+                                     "plant", "harvest", "water", "remove", "ensure",
+                                     "use", "watch", "rotate", "wait", "avoid", "plan")):
+            actions.append("Check: " + w)
+        else:
+            actions.append(w)
+    for t in tips:
+        actions.append(t)
+    return actions
 
 
 # ── Stage advice generators ─────────────────────────────────────────────────
