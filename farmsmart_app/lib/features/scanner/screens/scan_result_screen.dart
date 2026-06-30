@@ -13,12 +13,15 @@ class ScanResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(translationsProvider);
-    final severityColor = switch (result.severity) {
+
+    if (result.isUnknown) return _UnknownView(t: t);
+
+    final severityColor = switch (result.severity.toLowerCase()) {
       'high' => AppColors.red500,
       'medium' => AppColors.amber500,
       _ => AppColors.green500,
     };
-    final severityVariant = switch (result.severity) {
+    final severityVariant = switch (result.severity.toLowerCase()) {
       'high' => ChipVariant.red,
       'medium' => ChipVariant.amber,
       _ => ChipVariant.green,
@@ -42,17 +45,19 @@ class ScanResultScreen extends ConsumerWidget {
                   Container(
                     width: 64, height: 64,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Center(child: Text('\u{1F52C}', style: TextStyle(fontSize: 28))),
+                    child: const Center(child: Text('🔬', style: TextStyle(fontSize: 28))),
                   ),
                   const SizedBox(height: 12),
-                  Text(t.t('analyzing'),
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white)),
-                  const SizedBox(height: 4),
-                  Text(t.t('scan_hint'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60)),
+                  Text(result.pestName,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
+                  if (result.scientificName != null) ...[
+                    const SizedBox(height: 4),
+                    Text(result.scientificName!,
+                      style: const TextStyle(fontSize: 14, color: Colors.white70, fontStyle: FontStyle.italic)),
+                  ],
                 ],
               ),
             ),
@@ -65,7 +70,7 @@ class ScanResultScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [AppShadows.md],
                 ),
                 child: Column(
@@ -79,7 +84,7 @@ class ScanResultScreen extends ConsumerWidget {
                             color: AppColors.red100,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Center(child: Text('\u{1F41B}', style: TextStyle(fontSize: 22))),
+                          child: const Center(child: Text('🐛', style: TextStyle(fontSize: 22))),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -87,30 +92,37 @@ class ScanResultScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(result.pestName,
-                                style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 20)),
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                               const SizedBox(height: 4),
-                              AppChip(label: '${result.severity.toUpperCase()} RISK', variant: severityVariant),
+                              AppChip(
+                                label: '${result.severity.toUpperCase()} RISK',
+                                variant: severityVariant,
+                              ),
                             ],
                           ),
                         ),
                         Text('${result.confidence.toStringAsFixed(0)}%',
-                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                            fontSize: 24, color: severityColor)),
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: severityColor)),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${t.t('confidence')}: ${(result.confidence * 100).toStringAsFixed(0)}%',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                     ),
                     const SizedBox(height: 20),
                     const Divider(),
                     const SizedBox(height: 12),
 
-                    Text('\u{1F48A} ${t.t('treatment')}', style: Theme.of(context).textTheme.titleMedium),
+                    Text('💊 ${t.t('treatment')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
-                    Text(result.treatment, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.6)),
+                    Text(result.treatment, style: const TextStyle(fontSize: 14, height: 1.6)),
 
                     if (result.prevention != null) ...[
                       const SizedBox(height: 20),
-                      Text('\u{1F6E1} Prevention', style: Theme.of(context).textTheme.titleMedium),
+                      const Text('🛡️ Prevention', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
-                      Text(result.prevention!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.6)),
+                      Text(result.prevention!, style: const TextStyle(fontSize: 14, height: 1.6)),
                     ],
                   ],
                 ),
@@ -121,35 +133,82 @@ class ScanResultScreen extends ConsumerWidget {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.green600,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
-                      ),
-                      icon: const Text('\u{1F504}', style: TextStyle(fontSize: 16)),
-                      label: Text(t.t('scan_crop'),
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.white)),
-                    ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green600,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  const SizedBox(height: 12),
-                  TextButton.icon(
-                    onPressed: () {},
-                    icon: const Text('\u{1F4DD}', style: TextStyle(fontSize: 14)),
-                    label: Text('Report incorrect result',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted)),
-                  ),
-                ],
+                  icon: const Text('🔄', style: TextStyle(fontSize: 16)),
+                  label: Text(t.t('scan_crop'),
+                    style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600)),
+                ),
               ),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
+      ),
+    );
+  }
+}
+
+class _UnknownView extends ConsumerWidget {
+  final Translations t;
+  const _UnknownView({required this.t});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 88, height: 88,
+                decoration: BoxDecoration(
+                  color: AppColors.amber100,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: const Center(child: Text('🤔', style: TextStyle(fontSize: 40))),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                t.t('unknown_pest_title'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                t.t('unknown_pest_body'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 15, color: Color(0xFF6B7280), height: 1.5),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Text('🔄'),
+                  label: Text(t.t('try_again'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

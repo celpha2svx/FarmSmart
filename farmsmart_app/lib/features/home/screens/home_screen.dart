@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/offline_banner.dart';
 import '../../../core/widgets/shimmer_loader.dart';
@@ -32,9 +33,12 @@ class HomeScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const OfflineBanner(),
-                _HomeHeader(t: t),
-                const SizedBox(height: 8),
-                _StatsRow(t: t),
+                const _HomeHeader(),
+                advisoryAsync.when(
+                  data: (advisory) => _StatsRow(advisory: advisory, t: t),
+                  loading: () => const _StatsRowShim(),
+                  error: (_, __) => _StatsRowShim(),
+                ),
                 advisoryAsync.when(
                   data: (advisory) => _AdvisoryCard(advisory: advisory, t: t),
                   loading: () => const AdvisoryCardShimmer(),
@@ -60,72 +64,94 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _HomeHeader extends StatelessWidget {
-  final Translations t;
-  const _HomeHeader({required this.t});
+class _HomeHeader extends ConsumerWidget {
+  const _HomeHeader();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(translationsProvider);
     final hour = DateTime.now().hour;
     final greeting = hour < 12 ? t.t('good_morning') : hour < 17 ? t.t('good_afternoon') : t.t('good_evening');
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.green700, AppColors.green500],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return FutureBuilder<String>(
+      future: FlutterSecureStorage().read(key: 'user_name'),
+      builder: (context, snap) {
+        final name = snap.data;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.green700, AppColors.green500],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(24),
+              bottomRight: Radius.circular(24),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '$greeting,',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.green100,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$greeting${name != null && name.isNotEmpty ? ',' : ''}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.green100),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        (name != null && name.isNotEmpty) ? name : t.t('farmer'),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppColors.white),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    t.t('farmer'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.white,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    child: const Icon(Icons.notifications_outlined, color: AppColors.white, size: 22),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.notifications_outlined, color: AppColors.white, size: 22),
-              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _StatsRow extends StatelessWidget {
+  final AdvisoryData advisory;
   final Translations t;
-  const _StatsRow({required this.t});
+  const _StatsRow({required this.advisory, required this.t});
+
+  String _temp() {
+    if (advisory.weather.tempMaxC == null) return '—';
+    return '${advisory.weather.tempMaxC!.round()}°';
+  }
+  String _humidity() {
+    if (advisory.weather.humidityPct == null) return '—';
+    return '${advisory.weather.humidityPct!.round()}%';
+  }
+  String _rain() {
+    final r = advisory.weather.rainfallMm24h;
+    if (r == null) return '—';
+    return '${r.toStringAsFixed(1)}mm';
+  }
+  String _soil() {
+    final s = advisory.soil.moisturePct;
+    if (s == null) return '—';
+    return '${s.round()}%';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,15 +159,34 @@ class _StatsRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Expanded(child: _StatBubble(emoji: '\u{1F321}\u{FE0F}', label: t.t('temperature'), value: '--', color: AppColors.warning)),
+          Expanded(child: _StatBubble(emoji: '🌡️', label: t.t('temperature'), value: _temp(), color: AppColors.warning)),
           const SizedBox(width: 8),
-          Expanded(child: _StatBubble(emoji: '\u{1F4A7}', label: t.t('humidity'), value: '--', color: AppColors.info)),
+          Expanded(child: _StatBubble(emoji: '💧', label: t.t('humidity'), value: _humidity(), color: AppColors.info)),
           const SizedBox(width: 8),
-          Expanded(child: _StatBubble(emoji: '\u{1F327}\u{FE0F}', label: t.t('rainfall'), value: '--', color: AppColors.blue)),
+          Expanded(child: _StatBubble(emoji: '🌧️', label: t.t('rainfall'), value: _rain(), color: AppColors.blue)),
           const SizedBox(width: 8),
-          Expanded(child: _StatBubble(emoji: '\u{1F331}', label: t.t('soil_moisture'), value: '--', color: AppColors.green600)),
+          Expanded(child: _StatBubble(emoji: '🌱', label: t.t('soil_moisture'), value: _soil(), color: AppColors.green600)),
         ],
       ),
+    );
+  }
+}
+
+class _StatsRowShim extends StatelessWidget {
+  const _StatsRowShim();
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(children: [
+        Expanded(child: _StatBubble(emoji: '🌡️', label: '', value: '—', color: Colors.grey)),
+        SizedBox(width: 8),
+        Expanded(child: _StatBubble(emoji: '💧', label: '', value: '—', color: Colors.grey)),
+        SizedBox(width: 8),
+        Expanded(child: _StatBubble(emoji: '🌧️', label: '', value: '—', color: Colors.grey)),
+        SizedBox(width: 8),
+        Expanded(child: _StatBubble(emoji: '🌱', label: '', value: '—', color: Colors.grey)),
+      ]),
     );
   }
 }
@@ -151,13 +196,7 @@ class _StatBubble extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-
-  const _StatBubble({
-    required this.emoji,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+  const _StatBubble({required this.emoji, required this.label, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +204,7 @@ class _StatBubble extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
@@ -174,17 +213,11 @@ class _StatBubble extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color),
           ),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontSize: 10,
-              color: AppColors.grey500,
-            ),
+            style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
           ),
         ],
       ),
@@ -203,8 +236,8 @@ class _AdvisoryCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        boxShadow: const [AppShadows.sm],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,8 +248,8 @@ class _AdvisoryCard extends StatelessWidget {
             decoration: const BoxDecoration(
               color: AppColors.green50,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(AppRadius.xl),
-                topRight: Radius.circular(AppRadius.xl),
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
               ),
             ),
             child: Row(
@@ -225,30 +258,31 @@ class _AdvisoryCard extends StatelessWidget {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: AppColors.green100,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('\u{1F33D}', style: TextStyle(fontSize: 20)),
+                  child: Text(advisory.emoji, style: const TextStyle(fontSize: 20)),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.t('todays_advisory'),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.green700,
-                        letterSpacing: 0.5,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.t('todays_advisory'),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.green700,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      advisory.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 2),
+                      Text(
+                        advisory.title,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -258,48 +292,53 @@ class _AdvisoryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  advisory.message,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 12),
-                ...advisory.actions.map((action) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('\u{2022} ', style: TextStyle(color: AppColors.green600)),
-                      Expanded(
-                        child: Text(
-                          action,
-                          style: Theme.of(context).textTheme.bodySmall,
+                if (advisory.warnings.isNotEmpty) ...[
+                  ...advisory.warnings.take(2).map((w) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('⚠️ ', style: TextStyle(fontSize: 14)),
+                        Expanded(
+                          child: Text(w, style: const TextStyle(fontSize: 14, color: Color(0xFF374151))),
                         ),
-                      ),
-                    ],
-                  ),
-                )),
+                      ],
+                    ),
+                  )),
+                  const SizedBox(height: 8),
+                ],
+                if (advisory.actions.isNotEmpty) ...[
+                  const Text('What to do today:',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1D1B20))),
+                  const SizedBox(height: 6),
+                  ...advisory.actions.take(4).map((action) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ', style: TextStyle(color: AppColors.green600, fontWeight: FontWeight.w700)),
+                        Expanded(
+                          child: Text(action, style: const TextStyle(fontSize: 14, height: 1.4)),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     AppChip(
-                      label: '${advisory.riskLevel}',
+                      label: _riskLabel(advisory.riskLevel, t),
                       variant: switch (advisory.riskLevel.toLowerCase()) {
                         'high' => ChipVariant.red,
                         'medium' => ChipVariant.amber,
                         _ => ChipVariant.green,
                       },
                     ),
-                    TextButton(
-                      onPressed: () {},
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(t.t('full_advisory')),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.arrow_forward, size: 16),
-                        ],
-                      ),
+                    Text(
+                      advisory.growthStageLabel,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                     ),
                   ],
                 ),
@@ -309,6 +348,14 @@ class _AdvisoryCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _riskLabel(String level, Translations t) {
+    switch (level.toLowerCase()) {
+      case 'high': return t.t('risk_high');
+      case 'medium': return t.t('risk_medium');
+      default: return t.t('risk_low');
+    }
   }
 }
 
@@ -325,16 +372,13 @@ class _QuickActionsGrid extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              t.t('quick_actions'),
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            child: Text(t.t('quick_actions'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
           Row(
             children: [
               Expanded(
                 child: _ActionButton(
-                  emoji: '\u{1F4F7}',
+                  emoji: '📷',
                   label: t.t('scan_crop'),
                   onTap: () => Navigator.pushNamed(context, '/scanner'),
                 ),
@@ -342,15 +386,15 @@ class _QuickActionsGrid extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _ActionButton(
-                  emoji: '\u{1F4C5}',
-                  label: t.t('calendar'),
+                  emoji: '📅',
+                  label: t.t('plan'),
                   onTap: () => ref.read(currentTabProvider.notifier).state = 1,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _ActionButton(
-                  emoji: '\u{1F4B0}',
+                  emoji: '💰',
                   label: t.t('market'),
                   onTap: () => ref.read(currentTabProvider.notifier).state = 2,
                 ),
@@ -358,7 +402,7 @@ class _QuickActionsGrid extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _ActionButton(
-                  emoji: '\u{1F33F}',
+                  emoji: '🌱',
                   label: t.t('advisory'),
                   onTap: () => ref.read(currentTabProvider.notifier).state = 0,
                 ),
@@ -375,12 +419,7 @@ class _ActionButton extends StatelessWidget {
   final String emoji;
   final String label;
   final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.emoji,
-    required this.label,
-    required this.onTap,
-  });
+  const _ActionButton({required this.emoji, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -390,20 +429,14 @@ class _ActionButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.grey200),
         ),
         child: Column(
           children: [
             Text(emoji, style: const TextStyle(fontSize: 24)),
             const SizedBox(height: 6),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -419,7 +452,6 @@ class _RecentAlerts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (announcements.isEmpty) return const SizedBox.shrink();
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -427,25 +459,22 @@ class _RecentAlerts extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              t.t('recent_alerts'),
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            child: Text(t.t('recent_alerts'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
           ...announcements.map((a) => Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.white,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.grey200),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  a.level == 'warning' ? Icons.warning_amber_rounded : Icons.info_outline,
-                  color: a.level == 'warning' ? AppColors.warning : AppColors.info,
+                  a.level == 'high' || a.level == 'warning' ? Icons.warning_amber_rounded : Icons.info_outline,
+                  color: a.level == 'high' || a.level == 'warning' ? AppColors.warning : AppColors.info,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -453,17 +482,9 @@ class _RecentAlerts extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        a.title,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text(a.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
-                      Text(
-                        a.body,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                      Text(a.body, style: const TextStyle(fontSize: 13, color: Color(0xFF374151))),
                     ],
                   ),
                 ),
