@@ -41,7 +41,11 @@ class _SplashScreenState extends State<SplashScreen>
     final loggedIn = await authNotifier.checkSession();
     if (!mounted) return;
     if (loggedIn) {
-      Navigator.pushNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      // No session: route to auth gate (which itself requires the user
+      // to have picked a language). The language picker is the cold-open.
+      Navigator.pushReplacementNamed(context, '/auth');
     }
   }
 
@@ -121,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(context, '/signup'),
+                        onPressed: () => Navigator.pushReplacementNamed(context, '/auth'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppColors.green900,
@@ -139,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/signup'),
+                    onPressed: () => Navigator.pushReplacementNamed(context, '/auth'),
                     child: Text(
                       'Already have account? Sign in',
                       style: TextStyle(

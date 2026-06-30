@@ -50,20 +50,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   void _onCompleted(String pin) async {
     final authNotifier = ref.read(authProvider.notifier);
-    final success = await authNotifier.verifyOtp(phone: _phone, otp: pin);
+    final needsPinSetup = await authNotifier.verifyOtp(phone: _phone, otp: pin);
     if (!mounted) return;
-    if (success) {
-      final completed = await authNotifier.hasCompletedOnboarding();
-      if (!mounted) return;
-      if (completed) {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
-      } else {
-        Navigator.pushNamedAndRemoveUntil(context, '/onboarding', (_) => false);
-      }
+    if (needsPinSetup) {
+      // New user OR no PIN yet — set up a PIN before continuing.
+      Navigator.pushNamedAndRemoveUntil(context, '/pin-setup', (_) => false);
+      return;
+    }
+    final completed = await authNotifier.hasCompletedOnboarding();
+    if (!mounted) return;
+    if (completed) {
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Wrong code. Please try again.')),
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/onboarding', (_) => false);
     }
   }
 
@@ -141,6 +140,22 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     onCompleted: _onCompleted,
                   ),
                 ),
+                if (ref.watch(authProvider).devOtpCode != null) ...[
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'DEV OTP: ${ref.watch(authProvider).devOtpCode}',
+                        style: const TextStyle(color: Colors.white, fontFamily: 'monospace'),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
                 Center(
                   child: _canResend

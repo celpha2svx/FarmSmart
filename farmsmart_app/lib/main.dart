@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/l10n/locale_provider.dart';
 import 'core/l10n/translations.dart';
-import 'features/auth/screens/splash_screen.dart';
+import 'features/auth/screens/language_picker_screen.dart';
+import 'features/auth/screens/auth_gate_screen.dart';
 import 'features/auth/screens/signup_screen.dart';
 import 'features/auth/screens/otp_screen.dart';
+import 'features/auth/screens/pin_login_screen.dart';
+import 'features/auth/screens/pin_setup_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'navigation/main_shell.dart';
 import 'features/scanner/screens/scanner_screen.dart';
@@ -58,12 +61,18 @@ class FarmSmartApp extends ConsumerWidget {
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/':
-            return MaterialPageRoute(builder: (_) => const SplashScreen());
+            return MaterialPageRoute(builder: (_) => const LanguagePickerScreen());
+          case '/auth':
+            return MaterialPageRoute(builder: (_) => const AuthGateScreen());
           case '/signup':
             return MaterialPageRoute(builder: (_) => const SignupScreen());
           case '/otp':
             final phone = settings.arguments as String? ?? '';
             return MaterialPageRoute(builder: (_) => OtpScreen(phone: phone));
+          case '/pin-setup':
+            return MaterialPageRoute(builder: (_) => const PinSetupScreen());
+          case '/pin-login':
+            return MaterialPageRoute(builder: (_) => const PinLoginScreen());
           case '/onboarding':
             return MaterialPageRoute(builder: (_) => const OnboardingScreen());
           case '/home':
@@ -75,7 +84,7 @@ class FarmSmartApp extends ConsumerWidget {
           case '/feedback':
             return MaterialPageRoute(builder: (_) => const FeedbackScreen());
           default:
-            return MaterialPageRoute(builder: (_) => const SplashScreen());
+            return MaterialPageRoute(builder: (_) => const LanguagePickerScreen());
         }
       },
     );
