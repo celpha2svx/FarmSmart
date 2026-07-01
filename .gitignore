@@ -39,3 +39,35 @@ build/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+farmsmart_app/.flutter-plugins
+farmsmart_app/.flutter-plugins-dependencies
+farmsmart_app/.dart_tool/
+farmsmart_app/build/
+farmsmart_app/.packages
+farmsmart_app/android/.gradle/
+farmsmart_app/android/app/build/
+farmsmart_app/android/build/
+farmsmart_app/ios/Pods/
+farmsmart_app/ios/.symlinks/
+farmsmart_app/ios/Flutter/Flutter.framework
+farmsmart_app/ios/Flutter/Flutter.podspec
+*.iml
+*.ipr
+*.iws
+
+# Agent scratch (Replit, Cursor, etc.)
+.agents/
+.aider*
+.cursor/
+.replit
+.claude/
+attached_assets/

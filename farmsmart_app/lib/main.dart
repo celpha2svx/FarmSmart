@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/l10n/locale_provider.dart';
-import 'core/l10n/translations.dart';
 import 'features/auth/screens/language_picker_screen.dart';
 import 'features/auth/screens/auth_gate_screen.dart';
 import 'features/auth/screens/signup_screen.dart';

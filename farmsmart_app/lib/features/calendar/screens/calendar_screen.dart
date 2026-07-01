@@ -174,12 +174,6 @@ class _TaskItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (Color bg, Color fg) = switch (task.type) {
-      'fertilizer' => (AppColors.earth100, AppColors.earth700),
-      'pest' => (AppColors.red100, AppColors.red500),
-      'water' => (const Color(0xFFE1F5FE), const Color(0xFF0288D1)),
-      _ => (AppColors.green100, AppColors.green700),
-    };
     final chipVariant = switch (task.type) {
       'fertilizer' => ChipVariant.earth,
       'pest' => ChipVariant.red,
@@ -230,24 +224,14 @@ class _TaskItem extends StatelessWidget {
                           color: isComplete ? AppColors.inkMuted : AppColors.ink,
                         ),
                   ),
-                  if (task.description != null && task.description!.isNotEmpty) ...[
+                  if (task.note != null && task.note!.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      task.description!,
+                      task.note!,
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
                           ?.copyWith(color: AppColors.inkMuted),
-                    ),
-                  ],
-                  if (task.daysAfterPlanting != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Day ${task.daysAfterPlanting} after planting',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.green700, fontSize: 10),
                     ),
                   ],
                 ],

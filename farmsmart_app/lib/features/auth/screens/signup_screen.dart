@@ -88,7 +88,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Create your account to get started.',
-                    style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.8)),
+                    style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.8)),
                   ),
                   const SizedBox(height: 40),
                   TextFormField(
@@ -99,9 +99,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     decoration: InputDecoration(
                       labelText: t.t('full_name'),
                       prefixIcon: const Icon(Icons.person_outline, color: Colors.white70),
-                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.15),
+                      fillColor: Colors.white.withValues(alpha: 0.15),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -137,9 +137,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       prefixText: '+234 ',
                       prefixIcon: const Icon(Icons.phone_outlined, color: Colors.white70),
                       prefixStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.15),
+                      fillColor: Colors.white.withValues(alpha: 0.15),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -175,7 +175,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.green900,
-                        disabledBackgroundColor: Colors.white.withOpacity(0.5),
+                        disabledBackgroundColor: Colors.white.withValues(alpha: 0.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -201,7 +201,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     child: Text(
                       'By signing up, you agree to our Terms of Service\nand Privacy Policy.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.65)),
+                      style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -213,10 +213,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       child: Text(
                         'Already have an account? Sign in with PIN',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 15,
                           decoration: TextDecoration.underline,
-                          decorationColor: Colors.white.withOpacity(0.5),
+                          decorationColor: Colors.white.withValues(alpha: 0.5),
                         ),
                       ),
                     ),

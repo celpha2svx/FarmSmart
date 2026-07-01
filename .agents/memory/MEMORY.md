@@ -1,5 +1,0 @@
-- [Backend endpoint map](endpoint-map.md) — canonical API routes and request/response shapes for all Flutter providers
-- [Task template filter bug](task-filter-fix.md) — `region="all"` in get_task_templates must skip the region filter, not filter for literal "all"
-- [Weather endpoint](weather-endpoint.md) — Open-Meteo `/api/weather` added, free, no key; returns temp/humidity/precipitation/wind_speed
-- [GitHub Actions APK](github-actions-apk.md) — `.github/workflows/build.yml` triggers on `v*` tags, builds APK, creates GitHub Release, notifies backend `/api/version/release`
-- [Secrets needed for full prod](secrets-needed.md) — AT_API_KEY + AT_USERNAME (SMS OTP), HUGGINGFACE_TOKEN (pest detection), FARMSMART_ADMIN_TOKEN (GitHub Actions → backend notify)

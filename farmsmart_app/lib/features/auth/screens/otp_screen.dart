@@ -78,7 +78,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         fontWeight: FontWeight.w600,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
     );
@@ -123,7 +123,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   '${t.t('otp_sent')} $_phone',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -146,7 +146,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.25),
+                        color: Colors.amber.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -167,7 +167,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                           child: Text(
                             t.t('resend_otp'),
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
@@ -176,7 +176,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                       : Text(
                           '${t.t('resend_in')} $_secondsRemaining s',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 15,
                           ),
                         ),

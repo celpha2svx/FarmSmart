@@ -83,7 +83,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     width: 280,
                     height: 280,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: CustomPaint(
@@ -130,7 +130,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppRadius.sm)),
-                      disabledBackgroundColor: AppColors.green600.withOpacity(0.5),
+                      disabledBackgroundColor: AppColors.green600.withValues(alpha: 0.5),
                     ),
                     icon: const Icon(Icons.camera_alt, color: Colors.white),
                     label: Text(t.t('take_photo'),

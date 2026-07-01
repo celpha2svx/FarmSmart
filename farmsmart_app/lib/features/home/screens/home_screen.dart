@@ -7,7 +7,6 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/app_chip.dart';
 import '../../../core/l10n/locale_provider.dart';
-import '../../../core/l10n/translations.dart';
 import '../../../navigation/main_shell.dart';
 import '../providers/advisory_provider.dart';
 import '../providers/announcements_provider.dart';

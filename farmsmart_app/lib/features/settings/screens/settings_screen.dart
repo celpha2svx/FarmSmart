@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/l10n/locale_provider.dart';
 import '../providers/settings_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -168,11 +166,12 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = user?.name ?? t.t('farmer');
-    final phone = user?.phone ?? '+234 800 000 0000';
+    final phone = user?.phone;
+    final showPhone = phone != null && phone.isNotEmpty;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2E7D32).withOpacity(0.08),
+        color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -191,14 +190,16 @@ class _ProfileCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF1D1B20))),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.phone_outlined, size: 14, color: Color(0xFF6B7280)),
-                    const SizedBox(width: 4),
-                    Text(phone, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
-                  ],
-                ),
+                if (showPhone) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.phone_outlined, size: 14, color: Color(0xFF6B7280)),
+                      const SizedBox(width: 4),
+                      Text(phone!, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -255,7 +256,7 @@ class _SettingsSection extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: Column(children: children),
         ),
@@ -293,7 +294,7 @@ class _ToggleRow extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             activeColor: const Color(0xFF2E7D32),
-            activeTrackColor: const Color(0xFF2E7D32).withOpacity(0.4),
+            activeTrackColor: const Color(0xFF2E7D32).withValues(alpha: 0.4),
           ),
         ],
       ),
