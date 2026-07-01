@@ -1,7 +1,7 @@
 name: farmsmart
 description: Advisory app for Nigerian smallholder farmers
 publish_to: 'none'
-version: 2.0.0+3
+version: 100.0.0+100
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
